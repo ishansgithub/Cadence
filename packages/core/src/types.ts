@@ -94,6 +94,32 @@ export type Task = z.infer<typeof taskSchema>
 export type TaskCreate = z.infer<typeof taskCreateSchema>
 export type TaskUpdate = z.infer<typeof taskUpdateSchema>
 
+export const sessionTypeSchema = z.enum(['focus', 'short_break', 'long_break'])
+export type SessionType = z.infer<typeof sessionTypeSchema>
+
+export const sessionSchema = z.object({
+  id: z.uuid(),
+  user_id: z.uuid(),
+  task_id: z.uuid().nullable(),
+  type: sessionTypeSchema,
+  planned_min: z.number().int(),
+  started_at: z.string().min(1),
+  ended_at: z.string().nullable(),
+  interrupted: z.boolean(),
+  interrupt_reason: z.string().nullable(),
+  created_at: z.string().min(1),
+  updated_at: z.string().min(1),
+})
+
+export const sessionStartSchema = z.object({
+  type: sessionTypeSchema,
+  task_id: z.uuid().nullable().optional(),
+  planned_min: z.number().int().positive(),
+})
+
+export type Session = z.infer<typeof sessionSchema>
+export type SessionStart = z.infer<typeof sessionStartSchema>
+
 export const settingsSchema = z.object({
   user_id: z.uuid(),
   focus_min: z.number().int(),

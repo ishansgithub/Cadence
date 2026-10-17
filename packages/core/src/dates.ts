@@ -28,3 +28,35 @@ export function addCalendarDays(isoDate: string, days: number): string {
 export function calendarDateInTimeZone(timeZone: string, isoTimestamp: string): string {
   return todayInTimeZone(timeZone, new Date(isoTimestamp))
 }
+
+export function zonedDayBounds(timeZone: string, now: Date): { from: string; to: string } {
+  const today = todayInTimeZone(timeZone, now)
+  return {
+    from: zonedMidnight(timeZone, today).toISOString(),
+    to: zonedMidnight(timeZone, addCalendarDays(today, 1)).toISOString(),
+  }
+}
+
+function zonedMidnight(timeZone: string, isoDate: string): Date {
+  const utcGuess = new Date(`${isoDate}T00:00:00.000Z`)
+  const first = new Date(utcGuess.getTime() - timeZoneOffsetMs(timeZone, utcGuess))
+  return new Date(utcGuess.getTime() - timeZoneOffsetMs(timeZone, first))
+}
+
+function timeZoneOffsetMs(timeZone: string, date: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(date)
+  const read = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value ?? '0')
+  let hour = read('hour')
+  if (hour === 24) hour = 0
+  const asUtc = Date.UTC(read('year'), read('month') - 1, read('day'), hour, read('minute'), read('second'))
+  return asUtc - date.getTime()
+}

@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { addCalendarDays, todayInTimeZone } from './dates'
+import { addCalendarDays, todayInTimeZone, zonedDayBounds } from './dates'
 
 describe('todayInTimeZone', () => {
   it('uses the calendar date in that timezone, not UTC', () => {
     expect(todayInTimeZone('America/New_York', new Date('2026-03-04T03:30:00.000Z'))).toBe('2026-03-03')
     expect(todayInTimeZone('Asia/Kolkata', new Date('2026-03-04T20:00:00.000Z'))).toBe('2026-03-05')
+  })
+})
+
+describe('zonedDayBounds', () => {
+  it('returns the UTC instants that bound the local calendar day', () => {
+    expect(zonedDayBounds('Asia/Kolkata', new Date('2026-03-04T20:00:00.000Z'))).toEqual({
+      from: '2026-03-04T18:30:00.000Z',
+      to: '2026-03-05T18:30:00.000Z',
+    })
+    expect(zonedDayBounds('America/New_York', new Date('2026-03-04T03:30:00.000Z'))).toEqual({
+      from: '2026-03-03T05:00:00.000Z',
+      to: '2026-03-04T05:00:00.000Z',
+    })
   })
 })
 

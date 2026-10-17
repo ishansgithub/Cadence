@@ -1,4 +1,16 @@
-import type { Goal, GoalCreate, GoalStatus, GoalUpdate, Settings, Task, TaskCreate, TaskStatus, TaskUpdate } from './types'
+import type {
+  Goal,
+  GoalCreate,
+  GoalStatus,
+  GoalUpdate,
+  Session,
+  SessionStart,
+  Settings,
+  Task,
+  TaskCreate,
+  TaskStatus,
+  TaskUpdate,
+} from './types'
 
 export type GoalListFilters = {
   status?: GoalStatus
@@ -29,6 +41,14 @@ export interface TaskRepo {
   delete(id: string): Promise<void>
   setStatus(id: string, status: TaskStatus): Promise<Task>
   plan(id: string, date: string | null): Promise<Task>
+}
+
+export interface SessionRepo {
+  getActive(): Promise<Session | null>
+  start(input: SessionStart): Promise<Session>
+  stop(id: string, interrupted: boolean, reason: string | null): Promise<Session>
+  complete(id: string): Promise<Session | null>
+  listRange(from: string, to: string): Promise<Session[]>
 }
 
 export interface SettingsRepo {
