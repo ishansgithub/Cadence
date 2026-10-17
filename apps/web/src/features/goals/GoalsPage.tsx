@@ -1,4 +1,13 @@
-import { countTasksForGoal, formatGoalTarget, type Goal, type GoalStatus } from '@cadence/core'
+import {
+  countTasksForGoal,
+  formatGoalTarget,
+  goalFocusMinutes,
+  goalProgress,
+  todayInTimeZone,
+  weekStartOn,
+  type Goal,
+  type GoalStatus,
+} from '@cadence/core'
 import { useState } from 'react'
 import { EmptyState } from '../../components/EmptyState'
 import { GoalProgress } from '../../components/GoalProgress'
@@ -6,7 +15,9 @@ import { Modal } from '../../components/Modal'
 import { QueryState } from '../../components/QueryState'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useArchiveGoal, useCreateGoal, useGoals, useUpdateGoal } from '../../data/use-goals'
+import { useReports } from '../../data/use-reports'
 import { useTasks } from '../../data/use-tasks'
+import { useSettings } from '../settings/useSettings'
 import { GoalForm } from './GoalForm'
 
 const filters: Array<GoalStatus | 'all'> = ['all', 'active', 'paused', 'done', 'archived']
@@ -14,6 +25,8 @@ const filters: Array<GoalStatus | 'all'> = ['all', 'active', 'paused', 'done', '
 export function GoalsPage() {
   const goals = useGoals()
   const tasks = useTasks()
+  const reports = useReports()
+  const settings = useSettings()
   const createGoal = useCreateGoal()
   const updateGoal = useUpdateGoal()
   const archiveGoal = useArchiveGoal()
@@ -79,6 +92,20 @@ export function GoalsPage() {
               {visible.map((goal) => {
                 const counts = countTasksForGoal(tasks.data ?? [], goal.id)
                 const target = formatGoalTarget(goal)
+                const today = settings.settings
+                  ? todayInTimeZone(settings.settings.timezone, new Date())
+                  : todayInTimeZone('UTC', new Date())
+                const week = weekStartOn(today, settings.settings?.week_starts_on ?? 1)
+                const minutes = goalFocusMinutes(
+                  reports.data?.timeByGoal ?? [],
+                  goal.id,
+                  goal.target_type === 'hours_per_week' ? week : null,
+                )
+                const progress = reports.isError
+                  ? { progress: 0, label: 'Focus time unavailable' }
+                  : reports.isPending
+                    ? { progress: 0, label: 'Loading focus time' }
+                    : goalProgress(goal, minutes, today)
                 return (
                   <li key={goal.id} className="rounded-2xl border border-border bg-surface p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -90,7 +117,7 @@ export function GoalsPage() {
                       {counts.open} open · {counts.done} done
                     </p>
                     <div className="mt-3">
-                      <GoalProgress progress={0} label="Tracked once you start focus sessions" />
+                      <GoalProgress progress={progress.progress} label={progress.label} />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button

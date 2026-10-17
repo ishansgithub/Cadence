@@ -7,6 +7,9 @@ dev-dist
 *.tsbuildinfo
 .vite
 coverage
+playwright-report
+test-results
+blob-report
 PLAN.md
 NOTES.md
 .cursor/
