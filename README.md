@@ -1,42 +1,39 @@
 # Cadence
 
-Personal focus, task, goal, and time-tracking app. This repo is a pnpm workspace:
+Cadence is a personal focus app for planning the day, tying tasks to goals, and seeing where time actually goes. A focus session is stored as a start timestamp, so the timer stays correct across refresh, sleep, and a closed tab.
 
-- `apps/web` (`@cadence/web`) — React PWA
-- `packages/core` (`@cadence/core`) — shared logic with no React or Supabase imports
+The browser app is a progressive web app. Desktop and Android builds are planned later. Data lives in Supabase Postgres, with row level security so each account only sees its own rows.
 
-## Setup
+## Status
 
-This repo uses React 19.3.1 and TypeScript 6.0.3. TypeScript 7 is published, but typescript-eslint does not support it yet.
+Auth and the app shell are in place: email and password, magic link, protected routes, and a settings row created on first sign-in. Tasks, goals, the focus timer, and reports are still to come.
 
-Install [pnpm](https://pnpm.io/) 12, or use Corepack (it ships with Node). Workspace scripts call `corepack pnpm`, so they still work when `pnpm` is not on your PATH:
+## Stack
+
+- TypeScript, React, Vite, Tailwind CSS
+- React Router, Zod, Vitest
+- Supabase: Postgres, Auth, and row level security
+- pnpm workspace
+
+| Package | Role |
+| --- | --- |
+| `apps/web` | React app (`@cadence/web`) |
+| `packages/core` | Shared logic with no React or Supabase imports (`@cadence/core`) |
+
+## Run locally
 
 ```bash
-corepack pnpm install
-```
-
-If `pnpm` is already on your PATH, `pnpm install` is the same command.
-
-Copy the env template and fill in the Supabase project URL and anon key (Project Settings → API). Never put the service role key in this file.
-
-```bash
+pnpm install
 cp .env.example .env
+pnpm dev
 ```
 
-Vite reads that file from the repo root.
-
-Apply the database migrations using [supabase/README.md](supabase/README.md).
-
-## Scripts
+Put the Supabase project URL and anon key in `.env`. Apply the SQL in `supabase/migrations` first; the steps are in [supabase/README.md](supabase/README.md).
 
 | Command | What it does |
 | --- | --- |
-| `corepack pnpm dev` | Start the web app |
-| `corepack pnpm test` | Run unit tests in `packages/core` |
-| `corepack pnpm typecheck` | Typecheck every package |
-| `corepack pnpm lint` | ESLint |
-| `corepack pnpm build` | Typecheck, then production-build the web app |
-
-If `pnpm` is on your PATH, you can drop the `corepack` prefix.
-
-`corepack pnpm dev` starts without Supabase credentials. The client in `apps/web/src/lib/supabase.ts` reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` only when something calls `getSupabase()`.
+| `pnpm dev` | Start the web app |
+| `pnpm test` | Run unit tests |
+| `pnpm typecheck` | Typecheck every package |
+| `pnpm lint` | ESLint |
+| `pnpm build` | Typecheck, then build the web app |

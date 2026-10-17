@@ -9,7 +9,7 @@
     "typecheck": "corepack pnpm --filter @cadence/core --filter @cadence/web typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "corepack pnpm --filter @cadence/core test"
+    "test": "corepack pnpm --filter @cadence/core --filter @cadence/web test"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -316,7 +316,3 @@ Complete one phase at a time. Each phase ends with a working, runnable app and t
 - Reports clearly show where my time went per goal, estimate accuracy, and when I focus best.
 - Distracting sites are blocked during focus sessions in my browser.
 - My data is private (RLS verified) and exportable.
-
-## 9. First prompt to paste into Cursor
-
-> Read PLAN.md fully. Implement **Phase 0** only: scaffold the pnpm monorepo for the app named Cadence (package scope @cadence), set up `apps/web` and `packages/core`, add the three SQL migrations exactly as written, the Supabase client, `.env.example`, and a setup README. Do not start Phase 1. When done, list what you created and how I verify it.

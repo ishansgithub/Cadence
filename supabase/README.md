@@ -30,3 +30,11 @@ That needs the local stack (`supabase start`) and applies the same migration fol
 ## SQL editor
 
 In the Supabase dashboard, open **SQL Editor** and run each file’s full contents once, in the order above. Stop if a statement errors; later files depend on earlier ones.
+
+## Row level security check
+
+`rls-check.sql` signs in as two existing users, writes rows as the first, then asserts the second cannot read or write those rows in `goals`, `tasks`, `sessions`, `blocklists`, and `settings`. The script rolls back.
+
+The SQL editor connects as `postgres`, and the table owner bypasses RLS. The script switches to `authenticated` and sets `request.jwt.claims`, which is what `auth.uid()` uses. Replace the two placeholder UUIDs with real `auth.users.id` values before you run it. No exception means the second user is blocked. An exception names the table that leaked.
+
+You can also check from the app: sign in as user A and confirm Settings shows a time zone, sign out, sign in as user B, and in the SQL editor (as postgres) confirm B's `settings.user_id` is B and A's row is a different id. The script is the actual cross-read proof, because the app never lists another user's rows.

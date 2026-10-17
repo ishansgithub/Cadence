@@ -7,3 +7,6 @@ dev-dist
 *.tsbuildinfo
 .vite
 coverage
+PLAN.md
+NOTES.md
+.cursor/
