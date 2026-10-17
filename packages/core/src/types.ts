@@ -132,3 +132,64 @@ export const settingsSchema = z.object({
 })
 
 export type Settings = z.infer<typeof settingsSchema>
+
+const sqlNumber = z.preprocess((value) => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim()) return Number(value)
+  return value
+}, z.number())
+
+const sqlInteger = z.preprocess((value) => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim()) return Number(value)
+  return value
+}, z.number().int())
+
+export const dailyFocusRowSchema = z.object({
+  user_id: z.uuid(),
+  day: calendarDate,
+  goal_id: z.uuid().nullable(),
+  focus_min: sqlNumber,
+  sessions: sqlInteger,
+  interrupted_sessions: sqlInteger,
+})
+
+export const timeByGoalRowSchema = z.object({
+  user_id: z.uuid(),
+  goal_id: z.uuid().nullable(),
+  week_start: calendarDate,
+  focus_min: sqlNumber,
+})
+
+export const taskFocusRowSchema = z.object({
+  user_id: z.uuid(),
+  task_id: z.uuid(),
+  goal_id: z.uuid().nullable(),
+  title: z.string(),
+  status: taskStatusSchema,
+  estimate_min: nullableNumber,
+  day: calendarDate,
+  actual_min: sqlNumber,
+})
+
+export const focusHourRowSchema = z.object({
+  user_id: z.uuid(),
+  goal_id: z.uuid().nullable(),
+  day: calendarDate,
+  hour: sqlInteger,
+  focus_min: sqlNumber,
+})
+
+export const interruptionRowSchema = z.object({
+  user_id: z.uuid(),
+  goal_id: z.uuid().nullable(),
+  day: calendarDate,
+  reason: z.string(),
+  interruptions: sqlInteger,
+})
+
+export type DailyFocusRow = z.infer<typeof dailyFocusRowSchema>
+export type TimeByGoalRow = z.infer<typeof timeByGoalRowSchema>
+export type TaskFocusRow = z.infer<typeof taskFocusRowSchema>
+export type FocusHourRow = z.infer<typeof focusHourRowSchema>
+export type InterruptionRow = z.infer<typeof interruptionRowSchema>

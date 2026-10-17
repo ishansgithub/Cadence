@@ -1,15 +1,20 @@
 import type {
+  DailyFocusRow,
+  FocusHourRow,
   Goal,
   GoalCreate,
   GoalStatus,
   GoalUpdate,
+  InterruptionRow,
   Session,
   SessionStart,
   Settings,
   Task,
   TaskCreate,
+  TaskFocusRow,
   TaskStatus,
   TaskUpdate,
+  TimeByGoalRow,
 } from './types'
 
 export type GoalListFilters = {
@@ -53,4 +58,16 @@ export interface SessionRepo {
 
 export interface SettingsRepo {
   ensureForUser(userId: string, timeZone: string): Promise<Settings>
+}
+
+export type ReportRows = {
+  daily: DailyFocusRow[]
+  timeByGoal: TimeByGoalRow[]
+  taskFocus: TaskFocusRow[]
+  hours: FocusHourRow[]
+  interruptions: InterruptionRow[]
+}
+
+export interface ReportRepo {
+  load(): Promise<ReportRows>
 }

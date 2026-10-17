@@ -19,6 +19,16 @@ export {
   type GoalStatus,
   type GoalTargetType,
   type GoalUpdate,
+  dailyFocusRowSchema,
+  focusHourRowSchema,
+  interruptionRowSchema,
+  taskFocusRowSchema,
+  timeByGoalRowSchema,
+  type DailyFocusRow,
+  type FocusHourRow,
+  type InterruptionRow,
+  type TaskFocusRow,
+  type TimeByGoalRow,
   type Session,
   type SessionStart,
   type SessionType,
@@ -28,7 +38,38 @@ export {
   type TaskStatus,
   type TaskUpdate,
 } from './types'
-export type { GoalListFilters, GoalRepo, SessionRepo, SettingsRepo, TaskListFilters, TaskRepo } from './repos'
+export type {
+  GoalListFilters,
+  GoalRepo,
+  ReportRepo,
+  ReportRows,
+  SessionRepo,
+  SettingsRepo,
+  TaskListFilters,
+  TaskRepo,
+} from './repos'
+export {
+  bestDay,
+  currentStreak,
+  dailySeries,
+  estimateVsActual,
+  eachDay,
+  goalFocusMinutes,
+  goalProgress,
+  hourTotals,
+  interruptionRates,
+  reportRange,
+  topReasons,
+  weekStartOn,
+  weeklyByGoal,
+  type DailyPoint,
+  type DateRange,
+  type EstimatePoint,
+  type RatePoint,
+  type ReasonPoint,
+  type ReportPreset,
+  type WeeklyPoint,
+} from './reports'
 export { addCalendarDays, calendarDateInTimeZone, todayInTimeZone, zonedDayBounds } from './dates'
 export { countTasksForGoal, formatGoalTarget } from './goals'
 export { matchGoal, parseQuickAdd, type GoalMatch, type QuickAdd } from './quick-add'
