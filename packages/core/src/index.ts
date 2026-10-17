@@ -9,11 +9,14 @@ export {
   sessionSchema,
   sessionStartSchema,
   sessionTypeSchema,
+  blocklistSchema,
   settingsSchema,
+  settingsUpdateSchema,
   taskCreateSchema,
   taskSchema,
   taskStatusSchema,
   taskUpdateSchema,
+  type Blocklist,
   type Goal,
   type GoalCreate,
   type GoalStatus,
@@ -33,6 +36,7 @@ export {
   type SessionStart,
   type SessionType,
   type Settings,
+  type SettingsUpdate,
   type Task,
   type TaskCreate,
   type TaskStatus,
@@ -84,3 +88,5 @@ export {
   remainingSeconds,
 } from './timer'
 export { filterTasks, isOverdue, partitionToday, type TodayGroups } from './today'
+export { mergeQueuedUpdate, replayInOrder, type ApplyOutcome, type SyncKind, type SyncOp, type SyncTable } from './sync'
+export { assignBackupUser, backupCounts, backupSchema, type Backup } from './backup'

@@ -9,6 +9,8 @@ const validSettings = {
   sessions_before_long_break: 4,
   week_starts_on: 1,
   timezone: 'Asia/Kolkata',
+  sound_enabled: true,
+  notifications_enabled: true,
   updated_at: '2026-10-17T07:00:00.000Z',
 }
 

@@ -1,6 +1,6 @@
-import { resolveTimeZone, type Settings } from '@cadence/core'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { createSettingsRepo } from '../../data/settings-repo'
+import { resolveTimeZone, type Settings, type SettingsUpdate } from '@cadence/core'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { cachedSettings, createSettingsRepo, isConnectivityError } from '../../data/settings-repo'
 import { getSupabase } from '../../lib/supabase'
 import { settingsErrorMessage } from '../auth/auth-errors'
 import { useAuth } from '../auth/useAuth'
@@ -24,7 +24,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setSettings(row)
       })
       .catch((caught: unknown) => {
-        if (!cancelled) setError(settingsErrorMessage(caught))
+        if (cancelled) return
+        void cachedSettings(userId).then((cached) => {
+          if (cancelled) return
+          if (cached && isConnectivityError(caught)) setSettings(cached)
+          else setError(settingsErrorMessage(caught))
+        })
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -35,7 +40,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId])
 
-  const value = useMemo(() => ({ settings, loading, error }), [settings, loading, error])
+  const save = useCallback(
+    async (input: SettingsUpdate) => {
+      if (!userId) return
+      const next = await createSettingsRepo(getSupabase()).update(input)
+      setSettings(next)
+    },
+    [userId],
+  )
+
+  const value = useMemo(() => ({ settings, loading, error, save }), [settings, loading, error, save])
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
 }

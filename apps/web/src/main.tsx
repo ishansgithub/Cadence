@@ -7,6 +7,7 @@ import { ToastProvider } from './components/ToastProvider'
 import { queryClient } from './data/query-client'
 import { AuthProvider } from './features/auth/AuthProvider'
 import './index.css'
+import './pwa'
 
 const root = document.getElementById('root')
 if (!root) {

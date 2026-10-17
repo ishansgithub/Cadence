@@ -2,9 +2,13 @@ import {
   goalCreateSchema,
   goalSchema,
   goalUpdateSchema,
+  type Goal,
   type GoalRepo,
 } from '@cadence/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { currentUserId } from './account'
+import { isConnectivityError } from './connectivity'
+import { cacheGet, cacheSet } from './local-db'
 
 const goalColumns =
   'id, user_id, title, description, target_type, target_value, deadline, status, created_at, updated_at'
@@ -12,17 +16,38 @@ const goalColumns =
 export function createGoalsRepo(client: SupabaseClient): GoalRepo {
   return {
     async list(filters) {
-      let query = client.from('goals').select(goalColumns).order('created_at', { ascending: true })
-      if (filters?.status) query = query.eq('status', filters.status)
-      const { data, error } = await query
-      if (error) throw error
-      return goalSchema.array().parse(data ?? [])
+      try {
+        let query = client.from('goals').select(goalColumns).order('created_at', { ascending: true })
+        if (filters?.status) query = query.eq('status', filters.status)
+        const { data, error } = await query
+        if (error) throw error
+        const goals = goalSchema.array().parse(data ?? [])
+        if (!filters?.status) {
+          const userId = await currentUserId(client)
+          await cacheSet(`${userId}:goals`, goals)
+        }
+        return goals
+      } catch (error) {
+        if (!isConnectivityError(error)) throw error
+        const userId = await currentUserId(client)
+        const cached = (await cacheGet<Goal[]>(`${userId}:goals`)) ?? []
+        return filters?.status ? cached.filter((goal) => goal.status === filters.status) : cached
+      }
     },
 
     async get(id) {
-      const { data, error } = await client.from('goals').select(goalColumns).eq('id', id).single()
-      if (error) throw error
-      return goalSchema.parse(data)
+      try {
+        const { data, error } = await client.from('goals').select(goalColumns).eq('id', id).single()
+        if (error) throw error
+        return goalSchema.parse(data)
+      } catch (error) {
+        if (!isConnectivityError(error)) throw error
+        const userId = await currentUserId(client)
+        const cached = (await cacheGet<Goal[]>(`${userId}:goals`)) ?? []
+        const goal = cached.find((item) => item.id === id)
+        if (!goal) throw error
+        return goal
+      }
     },
 
     async create(input) {

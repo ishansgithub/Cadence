@@ -59,10 +59,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       try {
         const closed = await completeSession.mutateAsync(session.id)
         if (!closed) return
-        if (alert) {
-          playChime()
-          notifySessionEnded(session.type)
-        }
+        if (alert && currentSettings.sound_enabled) playChime()
+        if (alert && currentSettings.notifications_enabled) notifySessionEnded(session.type)
         if (session.type !== 'focus') return
         const others = (rangeRef.current ?? []).filter((item) => item.id !== closed.id)
         const next = nextSessionType(completedFocusCount([...others, closed]), currentSettings)
@@ -136,7 +134,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   async function startFocus(taskId: string | null) {
     if (!settings) return
-    await askForNotifications()
+    if (settings.notifications_enabled) await askForNotifications()
     await startSession.mutateAsync({
       type: 'focus',
       planned_min: settings.focus_min,

@@ -128,10 +128,26 @@ export const settingsSchema = z.object({
   sessions_before_long_break: z.number().int(),
   week_starts_on: z.number().int().min(0).max(6),
   timezone: z.string().min(1),
+  sound_enabled: z.boolean(),
+  notifications_enabled: z.boolean(),
+  updated_at: z.string().min(1),
+})
+
+export const settingsUpdateSchema = settingsSchema.omit({ user_id: true, updated_at: true })
+
+export const blocklistSchema = z.object({
+  id: z.uuid(),
+  user_id: z.uuid(),
+  name: z.string().min(1),
+  domains: z.array(z.string()),
+  is_default: z.boolean(),
+  created_at: z.string().min(1),
   updated_at: z.string().min(1),
 })
 
 export type Settings = z.infer<typeof settingsSchema>
+export type SettingsUpdate = z.infer<typeof settingsUpdateSchema>
+export type Blocklist = z.infer<typeof blocklistSchema>
 
 const sqlNumber = z.preprocess((value) => {
   if (typeof value === 'number') return value

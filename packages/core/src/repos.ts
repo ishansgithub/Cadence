@@ -9,6 +9,7 @@ import type {
   Session,
   SessionStart,
   Settings,
+  SettingsUpdate,
   Task,
   TaskCreate,
   TaskFocusRow,
@@ -58,6 +59,7 @@ export interface SessionRepo {
 
 export interface SettingsRepo {
   ensureForUser(userId: string, timeZone: string): Promise<Settings>
+  update(input: SettingsUpdate): Promise<Settings>
 }
 
 export type ReportRows = {

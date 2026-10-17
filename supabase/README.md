@@ -6,6 +6,7 @@ Apply these files, in order, to a fresh Supabase project:
 2. `migrations/0002_rls.sql` — row level security so each user only sees their own rows
 3. `migrations/0003_reports.sql` — report views (`security_invoker = true`, so RLS still applies)
 4. `migrations/0004_reports_v2.sql` — the same reports bucketed in `settings.timezone`, with weeks starting on `settings.week_starts_on`. The app reads these views. `0003` is left in place.
+5. `migrations/0005_settings_prefs.sql` — `sound_enabled` and `notifications_enabled` on `settings`.
 
 Do not edit a migration after it has been applied. Add a new numbered file for later schema changes.
 

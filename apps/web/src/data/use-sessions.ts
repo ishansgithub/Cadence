@@ -4,7 +4,7 @@ import { useToast } from '../components/useToast'
 import { errorMessage } from './errors'
 import { getSupabase } from '../lib/supabase'
 import { sessionKeys } from './query-keys'
-import { createSessionsRepo } from './sessions-repo'
+import { createOfflineSessionsRepo } from './offline-sessions'
 
 export function publishSessionChange() {
   const channel = new BroadcastChannel('cadence-sessions')
@@ -23,14 +23,14 @@ function useRefreshSessions() {
 export function useActiveSession() {
   return useQuery({
     queryKey: sessionKeys.active,
-    queryFn: () => createSessionsRepo(getSupabase()).getActive(),
+    queryFn: () => createOfflineSessionsRepo(getSupabase()).getActive(),
   })
 }
 
 export function useSessionRange(from: string | null, to: string | null) {
   return useQuery({
     queryKey: sessionKeys.range(from ?? '', to ?? ''),
-    queryFn: () => createSessionsRepo(getSupabase()).listRange(from ?? '', to ?? ''),
+    queryFn: () => createOfflineSessionsRepo(getSupabase()).listRange(from ?? '', to ?? ''),
     enabled: from !== null && to !== null,
   })
 }
@@ -39,7 +39,7 @@ export function useStartSession() {
   const refresh = useRefreshSessions()
   const toast = useToast()
   return useMutation({
-    mutationFn: (input: SessionStart) => createSessionsRepo(getSupabase()).start(input),
+    mutationFn: (input: SessionStart) => createOfflineSessionsRepo(getSupabase()).start(input),
     onError: (error) => toast.showError(errorMessage(error)),
     onSettled: () => void refresh(),
   })
@@ -50,7 +50,7 @@ export function useStopSession() {
   const toast = useToast()
   return useMutation({
     mutationFn: ({ id, interrupted, reason }: { id: string; interrupted: boolean; reason: string | null }) =>
-      createSessionsRepo(getSupabase()).stop(id, interrupted, reason),
+      createOfflineSessionsRepo(getSupabase()).stop(id, interrupted, reason),
     onError: (error) => toast.showError(errorMessage(error)),
     onSettled: () => void refresh(),
   })
@@ -60,7 +60,7 @@ export function useCompleteSession() {
   const refresh = useRefreshSessions()
   const toast = useToast()
   return useMutation({
-    mutationFn: (id: string) => createSessionsRepo(getSupabase()).complete(id),
+    mutationFn: (id: string) => createOfflineSessionsRepo(getSupabase()).complete(id),
     onError: (error) => toast.showError(errorMessage(error)),
     onSettled: () => void refresh(),
   })

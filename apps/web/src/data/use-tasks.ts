@@ -4,14 +4,14 @@ import { useToast } from '../components/useToast'
 import { errorMessage } from './errors'
 import { getSupabase } from '../lib/supabase'
 import { taskKeys } from './query-keys'
-import { createTasksRepo } from './tasks-repo'
+import { createOfflineTasksRepo } from './offline-tasks'
 
 const placeholderUserId = '00000000-0000-4000-8000-000000000000'
 
 export function useTasks() {
   return useQuery({
     queryKey: taskKeys.all,
-    queryFn: () => createTasksRepo(getSupabase()).list(),
+    queryFn: () => createOfflineTasksRepo(getSupabase()).list(),
   })
 }
 
@@ -19,7 +19,7 @@ export function useCreateTask() {
   const queryClient = useQueryClient()
   const toast = useToast()
   return useMutation({
-    mutationFn: (input: TaskCreate) => createTasksRepo(getSupabase()).create(input),
+    mutationFn: (input: TaskCreate) => createOfflineTasksRepo(getSupabase()).create(input),
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
       const previous = queryClient.getQueryData<Task[]>(taskKeys.all)
@@ -40,7 +40,7 @@ export function useUpdateTask() {
   const toast = useToast()
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskUpdate }) =>
-      createTasksRepo(getSupabase()).update(id, input),
+      createOfflineTasksRepo(getSupabase()).update(id, input),
     onError: (error) => toast.showError(errorMessage(error)),
     onSettled: () => void queryClient.invalidateQueries({ queryKey: taskKeys.all }),
   })
@@ -50,7 +50,7 @@ export function useDeleteTask() {
   const queryClient = useQueryClient()
   const toast = useToast()
   return useMutation({
-    mutationFn: (id: string) => createTasksRepo(getSupabase()).delete(id),
+    mutationFn: (id: string) => createOfflineTasksRepo(getSupabase()).delete(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
       const previous = queryClient.getQueryData<Task[]>(taskKeys.all)
@@ -70,7 +70,7 @@ export function useSetTaskStatus() {
   const toast = useToast()
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
-      createTasksRepo(getSupabase()).setStatus(id, status),
+      createOfflineTasksRepo(getSupabase()).setStatus(id, status),
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
       const previous = queryClient.getQueryData<Task[]>(taskKeys.all)
@@ -96,7 +96,7 @@ export function usePlanTask() {
   const toast = useToast()
   return useMutation({
     mutationFn: ({ id, date }: { id: string; date: string | null }) =>
-      createTasksRepo(getSupabase()).plan(id, date),
+      createOfflineTasksRepo(getSupabase()).plan(id, date),
     onMutate: async ({ id, date }) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
       const previous = queryClient.getQueryData<Task[]>(taskKeys.all)
