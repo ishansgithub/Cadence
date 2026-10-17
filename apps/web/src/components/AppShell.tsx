@@ -1,9 +1,12 @@
+import { appName, formatCountdown, remainingSeconds } from '@cadence/core'
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router'
-import { appName } from '@cadence/core'
+import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from '../features/auth/useAuth'
 import { SettingsProvider } from '../features/settings/SettingsProvider'
 import { useSettings } from '../features/settings/useSettings'
+import { TimerProvider } from '../features/timer/TimerProvider'
+import { TimerTitle } from '../features/timer/TimerTitle'
+import { useTimer } from '../features/timer/useTimer'
 
 const navItems = [
   { to: '/today', label: 'Today' },
@@ -38,14 +41,24 @@ export function AppShell() {
 
   return (
     <SettingsProvider key={user?.id}>
-      <ShellFrame />
+      <TimerProvider>
+        <TimerTitle />
+        <ShellFrame />
+      </TimerProvider>
     </SettingsProvider>
   )
 }
 
+const miniLabels = {
+  focus: 'Focus',
+  short_break: 'Short break',
+  long_break: 'Long break',
+} as const
+
 function ShellFrame() {
   const { user, signOut } = useAuth()
   const { error } = useSettings()
+  const { active, now } = useTimer()
   const [signOutError, setSignOutError] = useState<string | null>(null)
 
   async function onSignOut() {
@@ -66,7 +79,7 @@ function ShellFrame() {
         </nav>
       </aside>
 
-      <div className="flex min-h-svh flex-col pb-16 md:pb-0">
+      <div className={`flex min-h-svh flex-col ${active ? 'pb-28' : 'pb-16'} md:pb-0`}>
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <p className="font-serif text-lg md:hidden">{appName}</p>
           <p className="ml-auto truncate text-sm text-muted">{user?.email}</p>
@@ -78,6 +91,17 @@ function ShellFrame() {
             Sign out
           </button>
         </header>
+        {active ? (
+          <Link
+            to="/today"
+            className="fixed inset-x-0 bottom-16 z-30 flex items-center justify-between border-t border-border bg-surface px-4 py-2 md:static md:bottom-auto md:border-t-0 md:border-b"
+          >
+            <span className="text-sm">{miniLabels[active.type]}</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {formatCountdown(remainingSeconds(active, now))}
+            </span>
+          </Link>
+        ) : null}
         {error ? (
           <p role="alert" className="bg-danger-surface px-4 py-2 text-sm text-danger">
             {error}

@@ -9,6 +9,7 @@ import { useSettings } from '../settings/useSettings'
 import { QuickAdd } from '../tasks/QuickAdd'
 import { TaskDrawer } from '../tasks/TaskDrawer'
 import { TaskRow } from '../tasks/TaskRow'
+import { TimerPanel } from '../timer/TimerPanel'
 
 export function TodayPage() {
   const tasks = useTasks()
@@ -27,6 +28,9 @@ export function TodayPage() {
   return (
     <section className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">Today</h1>
+      <div className="mt-4">
+        <TimerPanel />
+      </div>
       {groups ? <p className="mt-1 text-sm text-muted">{groups.plannedEstimateMin} min estimated</p> : null}
       <div className="mt-4">
         {today ? (

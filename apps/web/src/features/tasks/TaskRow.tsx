@@ -1,6 +1,7 @@
-import { isOverdue, type Goal, type Task } from '@cadence/core'
+import { focusMinutesForTask, isOverdue, type Goal, type Task } from '@cadence/core'
 import { GoalChip } from '../../components/GoalChip'
 import { usePlanTask, useSetTaskStatus } from '../../data/use-tasks'
+import { useTimer } from '../timer/useTimer'
 
 export function TaskRow({
   task,
@@ -15,6 +16,8 @@ export function TaskRow({
 }) {
   const setStatus = useSetTaskStatus()
   const planTask = usePlanTask()
+  const timer = useTimer()
+  const focusMinutes = focusMinutesForTask(timer.todaySessions, task.id, timer.now)
   const goal = goals.find((item) => item.id === task.goal_id)
   const overdue = isOverdue(task, today)
   const planned = task.planned_for === today
@@ -33,6 +36,9 @@ export function TaskRow({
       </button>
       {goal ? <GoalChip title={goal.title} /> : null}
       {task.estimate_min ? <span className="text-sm text-muted">{task.estimate_min}m</span> : null}
+      {focusMinutes >= 0.5 ? (
+        <span className="text-xs text-muted">{Math.round(focusMinutes)} min focused</span>
+      ) : null}
       {task.due_date ? (
         <span className={overdue ? 'text-sm text-danger' : 'text-sm text-muted'}>{task.due_date}</span>
       ) : null}
