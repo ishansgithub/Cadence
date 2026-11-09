@@ -17,18 +17,27 @@ export function Drawer({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
-      <button type="button" className="absolute inset-0 bg-foreground/30" aria-label="Close" onClick={onClose} />
+    <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-stretch sm:justify-end">
+      <button
+        type="button"
+        className="cadence-scrim absolute inset-0 bg-foreground/30 backdrop-blur-[1px]"
+        aria-label="Close"
+        onClick={onClose}
+      />
       <section
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto bg-surface px-4 py-5 shadow-xl"
+        className="cadence-drawer relative flex max-h-[90vh] w-full max-w-md flex-col overflow-y-auto rounded-t-2xl border border-border bg-surface px-4 py-5 sm:h-full sm:max-h-none sm:rounded-none sm:border-0 sm:border-l"
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg border border-border px-2 py-1 text-sm">
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 rounded-lg border border-border px-3 text-sm"
+          >
             Close
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { autoCompleteEnd, sessionSchema, sessionStartSchema, type SessionRepo } from '@cadence/core'
+import { sessionSchema, sessionStartSchema, type SessionRepo } from '@cadence/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const sessionColumns =
@@ -61,7 +61,7 @@ export function createSessionsRepo(client: SupabaseClient): SessionRepo {
       const { data, error } = await client
         .from('sessions')
         .update({
-          ended_at: autoCompleteEnd(existing),
+          ended_at: new Date().toISOString(),
           interrupted: false,
           interrupt_reason: null,
         })

@@ -19,7 +19,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-center gap-2 px-4 md:bottom-6">
         {toasts.map((toast) => (
-          <p key={toast.id} role="alert" className="pointer-events-auto max-w-sm rounded-lg bg-danger-surface px-3 py-2 text-sm text-danger shadow">
+          <p
+            key={toast.id}
+            role="alert"
+            className="cadence-enter pointer-events-auto max-w-sm rounded-xl border border-danger/30 bg-danger-surface px-3 py-2 text-sm text-danger"
+          >
             {toast.message}
           </p>
         ))}

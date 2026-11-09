@@ -97,15 +97,19 @@ export function QuickAdd({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="Title  #goal  ~30m  !tomorrow"
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+          className="mt-1 min-h-11 w-full rounded-lg border border-border bg-surface px-3 py-2"
         />
       </label>
       {picked ? <p className="mt-1 text-xs text-muted">Linked to {picked.title}</p> : null}
       {suggestions.length > 0 ? (
-        <ul className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-surface shadow">
+        <ul className="cadence-enter absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-border bg-surface">
           {suggestions.map((goal) => (
             <li key={goal.id}>
-              <button type="button" onClick={() => chooseGoal(goal)} className="block w-full px-3 py-2 text-left text-sm">
+              <button
+                type="button"
+                onClick={() => chooseGoal(goal)}
+                className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-background"
+              >
                 {goal.title}
               </button>
             </li>

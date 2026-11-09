@@ -12,7 +12,7 @@ export function applyTheme(choice: ThemeChoice) {
   const dark =
     choice === 'dark' || (choice === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   document.documentElement.classList.toggle('dark', dark)
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121410' : '#f4f1ea')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#141412' : '#f7f7f5')
 }
 
 export function writeTheme(choice: ThemeChoice) {

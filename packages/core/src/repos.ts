@@ -22,11 +22,14 @@ export type GoalListFilters = {
   status?: GoalStatus
 }
 
+export type TaskDueFilter = 'all' | 'overdue' | 'today' | 'week' | 'none'
+
 export type TaskListFilters = {
   status?: TaskStatus
   goalId?: string | null
   plannedFor?: string | null
   overdue?: boolean
+  due?: TaskDueFilter
   search?: string
   today?: string
 }

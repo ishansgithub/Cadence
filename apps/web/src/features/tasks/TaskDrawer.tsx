@@ -4,7 +4,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Drawer } from '../../components/Drawer'
 import { useDeleteTask, useUpdateTask } from '../../data/use-tasks'
 
-const fieldClass = 'mt-1 w-full rounded-lg border border-border bg-background px-3 py-2'
+const fieldClass = 'mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2'
 const statuses: TaskStatus[] = ['todo', 'in_progress', 'done', 'archived']
 
 export function TaskDrawer({

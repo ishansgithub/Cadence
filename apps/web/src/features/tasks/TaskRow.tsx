@@ -1,6 +1,6 @@
-import { focusMinutesForTask, isOverdue, type Goal, type Task } from '@cadence/core'
+import { isOverdue, type Goal, type Task } from '@cadence/core'
 import { GoalChip } from '../../components/GoalChip'
-import { usePlanTask, useSetTaskStatus } from '../../data/use-tasks'
+import { useSetTaskStatus } from '../../data/use-tasks'
 import { useTimer } from '../timer/useTimer'
 
 export function TaskRow({
@@ -8,47 +8,55 @@ export function TaskRow({
   goals,
   today,
   onOpen,
+  showPlay = true,
 }: {
   task: Task
   goals: Goal[]
   today: string
   onOpen: () => void
+  showPlay?: boolean
 }) {
   const setStatus = useSetTaskStatus()
-  const planTask = usePlanTask()
   const timer = useTimer()
-  const focusMinutes = focusMinutesForTask(timer.todaySessions, task.id, timer.now)
   const goal = goals.find((item) => item.id === task.goal_id)
   const overdue = isOverdue(task, today)
-  const planned = task.planned_for === today
   const done = task.status === 'done'
+  const running = timer.active?.type === 'focus' && timer.active.task_id === task.id
 
   return (
-    <li className="flex flex-wrap items-center gap-2 border-b border-border py-3">
+    <li
+      className={`flex items-center gap-3 border-b border-border py-3 ${running ? 'bg-accent-muted/40' : ''}`}
+    >
       <input
         type="checkbox"
+        className="size-5 shrink-0 accent-[var(--accent)]"
         checked={done}
         aria-label={done ? `Mark ${task.title} not done` : `Mark ${task.title} done`}
         onChange={() => setStatus.mutate({ id: task.id, status: done ? 'todo' : 'done' })}
       />
-      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+      <button type="button" onClick={onOpen} className="min-h-11 min-w-0 flex-1 text-left">
         <span className={done ? 'text-muted line-through' : ''}>{task.title}</span>
+        {overdue && task.due_date ? (
+          <span className="mt-0.5 block text-xs text-overdue">
+            Overdue · <span className="tabular-nums">{task.due_date}</span>
+          </span>
+        ) : null}
       </button>
       {goal ? <GoalChip title={goal.title} /> : null}
-      {task.estimate_min ? <span className="text-sm text-muted">{task.estimate_min}m</span> : null}
-      {focusMinutes >= 0.5 ? (
-        <span className="text-xs text-muted">{Math.round(focusMinutes)} min focused</span>
+      {task.estimate_min ? (
+        <span className="shrink-0 text-sm tabular-nums text-muted">{task.estimate_min}m</span>
       ) : null}
-      {task.due_date ? (
-        <span className={overdue ? 'text-sm text-danger' : 'text-sm text-muted'}>{task.due_date}</span>
+      {showPlay && !done ? (
+        <button
+          type="button"
+          aria-label={`Start focus on ${task.title}`}
+          disabled={timer.loading || Boolean(timer.active)}
+          onClick={() => void timer.startFocus(task.id)}
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-sm font-medium text-accent disabled:opacity-50"
+        >
+          Play
+        </button>
       ) : null}
-      <button
-        type="button"
-        onClick={() => planTask.mutate({ id: task.id, date: planned ? null : today })}
-        className="rounded-lg border border-border px-2 py-1 text-xs"
-      >
-        {planned ? 'Unplan' : 'Plan for today'}
-      </button>
     </li>
   )
 }

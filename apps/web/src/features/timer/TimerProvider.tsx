@@ -1,10 +1,14 @@
 import {
+  applyPause,
+  applyResume,
   completedFocusCount,
   isExpired,
   nextSessionType,
   remainingSeconds,
   zonedDayBounds,
+  type PauseClock,
   type Session,
+  type SessionType,
   type Settings,
 } from '@cadence/core'
 import { useQueryClient } from '@tanstack/react-query'
@@ -21,6 +25,7 @@ import {
 import { useAuth } from '../auth/useAuth'
 import { useSettings } from '../settings/useSettings'
 import { askForNotifications, notifySessionEnded, playChime } from './feedback'
+import { clearPause, readPause, writePause } from './pause-storage'
 import { TimerContext } from './timer-context'
 
 export function TimerProvider({ children }: { children: ReactNode }) {
@@ -35,11 +40,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stopSession = useStopSession()
   const completeSession = useCompleteSession()
   const [promptTaskId, setPromptTaskId] = useState<string | null>(null)
+  const [completedMoment, setCompletedMoment] = useState<SessionType | null>(null)
+  const [pause, setPause] = useState<PauseClock | null>(null)
 
   const active = activeQuery.data ?? null
   const activeRef = useRef(active)
   const settingsRef = useRef(settings)
   const rangeRef = useRef(rangeQuery.data)
+  const pauseRef = useRef(pause)
   const previousRemaining = useRef<number | null>(null)
   const trackedSessionId = useRef<string | null>(null)
   const finishing = useRef<string | null>(null)
@@ -49,7 +57,21 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     activeRef.current = active
     settingsRef.current = settings
     rangeRef.current = rangeQuery.data
-  }, [active, rangeQuery.data, settings])
+    pauseRef.current = pause
+  }, [active, pause, rangeQuery.data, settings])
+
+  useEffect(() => {
+    if (!active) {
+      setPause(null)
+      return
+    }
+    setPause(readPause(active.id))
+  }, [active?.id])
+
+  const persistPause = useCallback((sessionId: string, next: PauseClock) => {
+    setPause(next)
+    writePause(sessionId, next)
+  }, [])
 
   const finishOnTime = useCallback(
     async (session: Session, currentSettings: Settings, alert: boolean) => {
@@ -59,6 +81,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       try {
         const closed = await completeSession.mutateAsync(session.id)
         if (!closed) return
+        clearPause(session.id)
+        setPause(null)
+        setCompletedMoment(session.type)
         if (alert && currentSettings.sound_enabled) playChime()
         if (alert && currentSettings.notifications_enabled) notifySessionEnded(session.type)
         if (session.type !== 'focus') return
@@ -109,17 +134,19 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const current = activeRef.current
     const currentSettings = settingsRef.current
+    const currentPause = pauseRef.current
     if (!current || !currentSettings) return
-    if (!isExpired(current, new Date())) return
+    if (!isExpired(current, new Date(), currentPause)) return
     void finishOnTime(current, currentSettings, false)
-  }, [active, finishOnTime])
+  }, [active, finishOnTime, pause])
 
   useEffect(() => {
     const id = window.setInterval(() => {
       const current = activeRef.current
       const currentSettings = settingsRef.current
+      const currentPause = pauseRef.current
       if (!current || !currentSettings) return
-      const seconds = remainingSeconds(current, new Date())
+      const seconds = remainingSeconds(current, new Date(), currentPause)
       if (trackedSessionId.current !== current.id) {
         trackedSessionId.current = current.id
         previousRemaining.current = seconds
@@ -127,31 +154,58 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       }
       const crossedZero = previousRemaining.current !== null && previousRemaining.current > 0 && seconds <= 0
       previousRemaining.current = seconds
-      if (seconds <= 0) void finishOnTime(current, currentSettings, crossedZero)
+      if (seconds <= 0 && !currentPause?.pausedAt) void finishOnTime(current, currentSettings, crossedZero)
     }, 250)
     return () => window.clearInterval(id)
   }, [finishOnTime])
 
-  async function startFocus(taskId: string | null) {
+  async function startMode(type: SessionType, taskId: string | null = null) {
     if (!settings) return
-    if (settings.notifications_enabled) await askForNotifications()
+    if (type === 'focus' && settings.notifications_enabled) await askForNotifications()
+    const planned =
+      type === 'focus'
+        ? settings.focus_min
+        : type === 'long_break'
+          ? settings.long_break_min
+          : settings.short_break_min
     await startSession.mutateAsync({
-      type: 'focus',
-      planned_min: settings.focus_min,
-      task_id: taskId,
+      type,
+      planned_min: planned,
+      task_id: type === 'focus' ? taskId : null,
     })
     previousRemaining.current = null
     finishing.current = null
+    setCompletedMoment(null)
   }
 
-  async function stopFocus(reason: string) {
+  async function startFocus(taskId: string | null) {
+    await startMode('focus', taskId)
+  }
+
+  async function stopFocus(reason: string | null) {
     if (!active) return
     await stopSession.mutateAsync({ id: active.id, interrupted: true, reason })
+    clearPause(active.id)
+    setPause(null)
   }
 
   async function skipBreak() {
     if (!active) return
     await stopSession.mutateAsync({ id: active.id, interrupted: false, reason: null })
+    clearPause(active.id)
+    setPause(null)
+  }
+
+  function pauseTimer() {
+    if (!active || pause?.pausedAt) return
+    const next = applyPause(pause ?? { pausedMs: 0, pausedAt: null }, new Date())
+    persistPause(active.id, next)
+  }
+
+  function resumeTimer() {
+    if (!active || !pause?.pausedAt) return
+    const next = applyResume(pause, new Date())
+    persistPause(active.id, next)
   }
 
   return (
@@ -161,11 +215,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         now,
         todaySessions: rangeQuery.data ?? [],
         loading: activeQuery.isPending,
+        pause,
+        paused: Boolean(pause?.pausedAt),
         promptTaskId,
+        completedMoment,
         startFocus,
+        startMode,
         stopFocus,
         skipBreak,
+        pauseTimer,
+        resumeTimer,
         dismissPrompt: () => setPromptTaskId(null),
+        dismissCompleted: () => setCompletedMoment(null),
       }}
     >
       {children}

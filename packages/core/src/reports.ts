@@ -215,3 +215,69 @@ export function goalProgress(
   }
   return { progress: 0, label: 'No target' }
 }
+
+export function dailyInsight(points: DailyPoint[]): string | null {
+  const best = bestDay(points)
+  if (!best) return null
+  return `Most focus was on ${shortLabel(best.day)} (${Math.round(best.focusMin)} min).`
+}
+
+export function goalTimeInsight(
+  points: WeeklyPoint[],
+  goalIds: string[],
+  names: Map<string, string>,
+): string | null {
+  const totals = new Map<string, number>()
+  for (const point of points) {
+    for (const id of goalIds) {
+      totals.set(id, (totals.get(id) ?? 0) + Number(point[id] ?? 0))
+    }
+  }
+  let topId: string | null = null
+  let topMin = 0
+  for (const [id, minutes] of totals) {
+    if (minutes > topMin) {
+      topId = id
+      topMin = minutes
+    }
+  }
+  if (!topId || topMin <= 0) return null
+  const hours = Math.round((topMin / 60) * 10) / 10
+  return `${names.get(topId) ?? 'One goal'} got the most time (${hours} h).`
+}
+
+export function estimateInsight(points: EstimatePoint[]): string | null {
+  if (points.length === 0) return null
+  const estimate = points.reduce((sum, point) => sum + point.estimateMin, 0)
+  const actual = points.reduce((sum, point) => sum + point.actualMin, 0)
+  if (estimate <= 0) return `Logged ${Math.round(actual)} min across ${points.length} finished tasks.`
+  const delta = Math.round(((actual - estimate) / estimate) * 100)
+  if (delta === 0) return 'Actual time matched estimates overall.'
+  if (delta > 0) return `Tasks ran about ${delta}% over estimate on average.`
+  return `Tasks finished about ${Math.abs(delta)}% under estimate on average.`
+}
+
+export function reasonInsight(points: ReasonPoint[]): string | null {
+  const top = points[0]
+  if (!top) return null
+  const noun = top.interruptions === 1 ? 'time' : 'times'
+  return `${top.reason} led interruptions (${top.interruptions} ${noun}).`
+}
+
+export function hourInsight(hours: number[]): string | null {
+  let bestHour = -1
+  let bestMin = 0
+  hours.forEach((minutes, hour) => {
+    if (minutes > bestMin) {
+      bestHour = hour
+      bestMin = minutes
+    }
+  })
+  if (bestHour < 0 || bestMin <= 0) return null
+  return `Focus clustered around ${String(bestHour).padStart(2, '0')}:00.`
+}
+
+function shortLabel(day: string): string {
+  const [, month, date] = day.split('-')
+  return `${month}-${date}`
+}

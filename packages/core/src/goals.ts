@@ -27,6 +27,25 @@ export function countTasksForGoal(tasks: Task[], goalId: string): { open: number
   return { open, done }
 }
 
+export function taskCompletionProgress(counts: { open: number; done: number }): {
+  progress: number
+  label: string
+} {
+  const total = counts.open + counts.done
+  if (total === 0) return { progress: 0, label: 'No linked tasks' }
+  return { progress: counts.done / total, label: `${counts.done} / ${total} tasks` }
+}
+
+export function tasksForGoal(tasks: Task[], goalId: string): Task[] {
+  return tasks
+    .filter((task) => task.goal_id === goalId && task.status !== 'archived')
+    .sort((a, b) => {
+      if (a.status === 'done' && b.status !== 'done') return 1
+      if (a.status !== 'done' && b.status === 'done') return -1
+      return a.created_at.localeCompare(b.created_at)
+    })
+}
+
 function formatHours(value: number): string {
   return String(value)
 }

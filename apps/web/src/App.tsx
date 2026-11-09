@@ -4,8 +4,10 @@ import { GoalsPage } from './features/goals/GoalsPage'
 import { LoginPage } from './features/auth/LoginPage'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { ReportsPage } from './features/reports/ReportsPage'
+import { AuthenticatedLayout } from './features/session/AuthenticatedLayout'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { TasksPage } from './features/tasks/TasksPage'
+import { FocusTimerPage } from './features/timer/FocusTimerPage'
 import { TodayPage } from './features/today/TodayPage'
 
 export function App() {
@@ -13,14 +15,17 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate to="/today" replace />} />
-          <Route path="/today" element={<TodayPage />} />
-          <Route path="/tasks" element={<TasksPage />} />
-          <Route path="/goals" element={<GoalsPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/today" replace />} />
+        <Route element={<AuthenticatedLayout />}>
+          <Route path="/focus" element={<FocusTimerPage />} />
+          <Route element={<AppShell />}>
+            <Route path="/" element={<Navigate to="/today" replace />} />
+            <Route path="/today" element={<TodayPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/goals" element={<GoalsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/today" replace />} />
+          </Route>
         </Route>
       </Route>
     </Routes>

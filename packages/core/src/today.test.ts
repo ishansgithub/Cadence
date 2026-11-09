@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from './types'
-import { partitionToday } from './today'
+import { filterTasks, groupTasksForList, partitionToday } from './today'
 
 const today = '2026-03-04'
 const zone = 'UTC'
@@ -33,12 +33,38 @@ describe('partitionToday', () => {
     task({ id: 'old-done', title: 'Yesterday', status: 'done', completed_at: '2026-03-03T15:00:00.000Z' }),
   ]
 
-  it('groups planned, overdue, suggested, and done tasks', () => {
+  it('groups planned, overdue, and done tasks', () => {
     const groups = partitionToday(tasks, today, zone)
     expect(groups.planned.map((item) => item.id)).toEqual(['p1', 'planned-late', 'p2'])
     expect(groups.plannedEstimateMin).toBe(35)
     expect(groups.overdue.map((item) => item.id)).toEqual(['late'])
-    expect(groups.suggested.map((item) => item.id)).toEqual(['soon'])
     expect(groups.doneToday.map((item) => item.id)).toEqual(['done', 'done-elsewhere'])
+  })
+
+  it('groups the tasks list by due date', () => {
+    const groups = groupTasksForList(
+      [
+        task({ id: 'late', title: 'Late', due_date: '2026-03-01' }),
+        task({ id: 'due-today', title: 'Now', due_date: today }),
+        task({ id: 'soon', title: 'Soon', due_date: '2026-03-10' }),
+        task({ id: 'open', title: 'Open' }),
+        task({ id: 'finished', title: 'Finished', status: 'done', due_date: today }),
+      ],
+      today,
+    )
+    expect(groups.map((group) => group.id)).toEqual(['overdue', 'today', 'upcoming', 'none', 'done'])
+    expect(groups.find((group) => group.id === 'today')?.tasks.map((item) => item.id)).toEqual(['due-today'])
+  })
+
+  it('filters by due window', () => {
+    const list = [
+      task({ id: 'late', title: 'Late', due_date: '2026-03-01' }),
+      task({ id: 'due-today', title: 'Now', due_date: today }),
+      task({ id: 'soon', title: 'Soon', due_date: '2026-03-10' }),
+      task({ id: 'open', title: 'Open' }),
+    ]
+    expect(filterTasks(list, { due: 'overdue', today }).map((item) => item.id)).toEqual(['late'])
+    expect(filterTasks(list, { due: 'today', today }).map((item) => item.id)).toEqual(['due-today'])
+    expect(filterTasks(list, { due: 'none', today }).map((item) => item.id)).toEqual(['open'])
   })
 })

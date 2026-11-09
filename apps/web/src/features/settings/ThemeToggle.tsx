@@ -28,8 +28,8 @@ export function ThemeToggle() {
           }}
           className={
             choice === item
-              ? 'min-h-11 rounded-md bg-accent px-3 text-sm font-medium text-accent-foreground capitalize'
-              : 'min-h-11 rounded-md px-3 text-sm capitalize'
+              ? 'min-h-11 rounded-md bg-accent-muted px-3 text-sm font-medium text-accent capitalize'
+              : 'min-h-11 rounded-md px-3 text-sm capitalize text-muted hover:text-foreground'
           }
         >
           {item}

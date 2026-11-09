@@ -1,10 +1,14 @@
 import {
   bestDay,
   currentStreak,
+  dailyInsight,
   dailySeries,
+  estimateInsight,
   estimateVsActual,
+  goalTimeInsight,
+  hourInsight,
   hourTotals,
-  interruptionRates,
+  reasonInsight,
   reportRange,
   todayInTimeZone,
   topReasons,
@@ -12,75 +16,33 @@ import {
   type ReportPreset,
   type ReportRows,
 } from '@cadence/core'
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
-import { EmptyState } from '../../components/EmptyState'
-import { QueryState } from '../../components/QueryState'
 import { useGoals } from '../../data/use-goals'
 import { useReports } from '../../data/use-reports'
 import { useSettings } from '../settings/useSettings'
+import { ChartCard, DataTable } from './ChartCard'
 
-const presets: Array<{ id: ReportPreset; label: string }> = [
-  { id: 'this_week', label: 'This week' },
-  { id: 'last_week', label: 'Last week' },
-  { id: 'this_month', label: 'This month' },
-  { id: 'last_30', label: 'Last 30 days' },
-  { id: 'custom', label: 'Custom' },
-]
-
-const colors = ['#0f766e', '#b45309', '#1d4ed8', '#be123c', '#6d28d9', '#047857']
+const chartColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
 
 function shortDay(day: string): string {
   return day.slice(5)
-}
-
-function ChartCard({
-  title,
-  pending,
-  error,
-  onRetry,
-  empty,
-  children,
-}: {
-  title: string
-  pending: boolean
-  error: unknown
-  onRetry: () => void
-  empty: boolean
-  children: ReactNode
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
-      <h2 className="text-base font-semibold">{title}</h2>
-      <div className="mt-3">
-        <QueryState isPending={pending} isError={Boolean(error)} error={error} onRetry={onRetry} label={`Loading ${title}`}>
-          {empty ? (
-            <EmptyState title="Nothing here yet" body="Finish a focus session and it will show up in this chart." />
-          ) : (
-            children
-          )}
-        </QueryState>
-      </div>
-    </section>
-  )
 }
 
 export function ReportsPage() {
   const reports = useReports()
   const goals = useGoals()
   const settings = useSettings()
-  const [preset, setPreset] = useState<ReportPreset>('this_week')
+  const [span, setSpan] = useState<'week' | 'month'>('week')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [goalId, setGoalId] = useState<string | null>(null)
@@ -88,17 +50,25 @@ export function ReportsPage() {
   const timeZone = settings.settings?.timezone ?? 'UTC'
   const weekStartsOn = settings.settings?.week_starts_on ?? 1
   const today = todayInTimeZone(timeZone, new Date())
-  const range = reportRange(preset, today, weekStartsOn, { from: customFrom || today, to: customTo || today })
+  const usingCustom = Boolean(customFrom || customTo)
+  const preset: ReportPreset = usingCustom ? 'custom' : span === 'week' ? 'this_week' : 'this_month'
+  const range = reportRange(preset, today, weekStartsOn, {
+    from: customFrom || today,
+    to: customTo || today,
+  })
+
   const rows: ReportRows | undefined = reports.data
-  const goalName = new Map((goals.data ?? []).map((goal) => [goal.id, goal.title]))
-  goalName.set('none', 'No goal')
+  const goalName = useMemo(() => {
+    const map = new Map((goals.data ?? []).map((goal) => [goal.id, goal.title]))
+    map.set('none', 'No goal')
+    return map
+  }, [goals.data])
 
   const daily = rows ? dailySeries(rows.daily, range, goalId) : []
   const weekly = rows ? weeklyByGoal(rows.timeByGoal, range, goalId) : { points: [], goalIds: [] }
   const estimates = rows ? estimateVsActual(rows.taskFocus, range, goalId) : []
-  const rates = rows ? interruptionRates(rows.daily, range, goalId) : []
   const reasons = rows ? topReasons(rows.interruptions, range, goalId) : []
-  const hours = rows ? hourTotals(rows.hours, range, goalId) : []
+  const hours = rows ? hourTotals(rows.hours, range, goalId) : Array.from({ length: 24 }, () => 0)
   const streak = rows ? currentStreak(rows.daily, today) : 0
   const best = bestDay(daily)
   const focusMin = Math.round(daily.reduce((sum, point) => sum + point.focusMin, 0))
@@ -108,102 +78,150 @@ export function ReportsPage() {
     void reports.refetch()
   }
 
+  const hourRows = hours.map((minutes, hour) => [
+    `${String(hour).padStart(2, '0')}:00`,
+    Math.round(minutes),
+  ])
+
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
           <p className="mt-1 text-sm text-muted">
-            {range.from} to {range.to}
-            {timeZone ? ` · ${timeZone}` : ''}
+            <span className="tabular-nums">
+              {range.from} → {range.to}
+            </span>
+            <span className="mx-2">·</span>
+            <span>{timeZone}</span>
           </p>
         </div>
         {selectedName ? (
-          <button type="button" onClick={() => setGoalId(null)} className="rounded-lg border border-border px-3 py-2 text-sm">
+          <button
+            type="button"
+            onClick={() => setGoalId(null)}
+            className="min-h-11 rounded-lg border border-border px-3 text-sm"
+          >
             Clear {selectedName}
           </button>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {presets.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setPreset(item.id)}
-            className={
-              preset === item.id
-                ? 'rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground'
-                : 'rounded-lg border border-border px-3 py-1.5 text-sm'
-            }
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-      {preset === 'custom' ? (
-        <div className="flex flex-wrap gap-3">
-          <label className="text-sm">
-            From
-            <input
-              type="date"
-              value={customFrom}
-              onChange={(event) => setCustomFrom(event.target.value)}
-              className="mt-1 block rounded-lg border border-border bg-background px-3 py-2"
-            />
-          </label>
-          <label className="text-sm">
-            To
-            <input
-              type="date"
-              value={customTo}
-              onChange={(event) => setCustomTo(event.target.value)}
-              className="mt-1 block rounded-lg border border-border bg-background px-3 py-2"
-            />
-          </label>
+      <div className="flex flex-wrap items-end gap-4">
+        <div
+          role="group"
+          aria-label="Range span"
+          className="flex rounded-xl border border-border bg-surface p-1"
+        >
+          {(['week', 'month'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={span === option && !usingCustom}
+              onClick={() => {
+                setSpan(option)
+                setCustomFrom('')
+                setCustomTo('')
+              }}
+              className={`min-h-11 rounded-lg px-4 text-sm font-medium capitalize ${
+                span === option && !usingCustom
+                  ? 'bg-accent-muted text-accent'
+                  : 'text-muted hover:text-foreground'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
         </div>
-      ) : null}
+        <label className="text-sm font-medium">
+          From
+          <input
+            type="date"
+            value={customFrom || range.from}
+            onChange={(event) => setCustomFrom(event.target.value)}
+            className="mt-1 block min-h-11 rounded-lg border border-border bg-surface px-3 tabular-nums"
+          />
+        </label>
+        <label className="text-sm font-medium">
+          To
+          <input
+            type="date"
+            value={customTo || range.to}
+            onChange={(event) => setCustomTo(event.target.value)}
+            className="mt-1 block min-h-11 rounded-lg border border-border bg-surface px-3 tabular-nums"
+          />
+        </label>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Summary label="Focus minutes" value={String(focusMin)} />
         <Summary label="Focus sessions" value={String(sessions)} testId="focus-sessions" />
         <Summary label="Current streak" value={streak === 1 ? '1 day' : `${streak} days`} />
-        <Summary label="Best day" value={best ? `${shortDay(best.day)} · ${Math.round(best.focusMin)} min` : '—'} />
+        <Summary
+          label="Best day"
+          value={best ? `${shortDay(best.day)} · ${Math.round(best.focusMin)} min` : '—'}
+        />
       </div>
 
       <ChartCard
-        title="Focus by day"
+        title="Focus time per day"
+        insight={dailyInsight(daily)}
         pending={reports.isPending}
         error={reports.error}
         onRetry={retry}
         empty={!reports.isPending && !reports.error && sessions === 0}
+        table={
+          <DataTable
+            caption="Focus minutes by day"
+            columns={['Day', 'Minutes', 'Sessions']}
+            rows={daily.map((point) => [point.day, Math.round(point.focusMin), point.sessions])}
+          />
+        }
       >
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={daily.map((point) => ({ ...point, label: shortDay(point.day) }))}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" />
-              <YAxis />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
+              <YAxis stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
               <Tooltip />
-              <Bar dataKey="focusMin" name="Minutes" fill="#0f766e" />
+              <Bar dataKey="focusMin" name="Minutes" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartCard>
 
       <ChartCard
-        title="Focus by week and goal"
+        title="Time by goal"
+        insight={goalTimeInsight(weekly.points, weekly.goalIds, goalName)}
         pending={reports.isPending}
         error={reports.error}
         onRetry={retry}
-        empty={weekly.points.length === 0}
+        empty={weekly.points.length === 0 || weekly.goalIds.every((id) =>
+          weekly.points.every((point) => !Number(point[id])),
+        )}
+        table={
+          <DataTable
+            caption="Focus minutes by week and goal"
+            columns={['Week', ...weekly.goalIds.map((id) => goalName.get(id) ?? id)]}
+            rows={weekly.points.map((point) => [
+              String(point.week),
+              ...weekly.goalIds.map((id) => Math.round(Number(point[id] ?? 0))),
+            ])}
+          />
+        }
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weekly.points}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="week" tickFormatter={shortDay} />
-              <YAxis />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="week"
+                tickFormatter={shortDay}
+                stroke="var(--chart-axis)"
+                tick={{ fill: 'var(--chart-axis)' }}
+              />
+              <YAxis stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
               <Tooltip />
               <Legend
                 onClick={(item) => {
@@ -216,7 +234,7 @@ export function ReportsPage() {
                   dataKey={id}
                   name={goalName.get(id) ?? 'Goal'}
                   stackId="focus"
-                  fill={colors[index % colors.length]}
+                  fill={chartColors[index % chartColors.length]}
                   className="cursor-pointer"
                   onClick={() => {
                     if (id !== 'none') setGoalId(id)
@@ -230,61 +248,67 @@ export function ReportsPage() {
 
       <ChartCard
         title="Estimate vs actual"
+        insight={estimateInsight(estimates)}
         pending={reports.isPending}
         error={reports.error}
         onRetry={retry}
         empty={estimates.length === 0}
+        table={
+          <DataTable
+            caption="Estimate versus actual minutes"
+            columns={['Task', 'Estimate', 'Actual']}
+            rows={estimates.map((point) => [
+              point.title,
+              Math.round(point.estimateMin),
+              Math.round(point.actualMin),
+            ])}
+          />
+        }
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={estimates}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="title" />
-              <YAxis />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="title" stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
+              <YAxis stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="estimateMin" name="Estimate" fill="#94a3b8" />
-              <Bar dataKey="actualMin" name="Actual" fill="#0f766e" />
+              <Bar dataKey="estimateMin" name="Estimate" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="actualMin" name="Actual" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartCard>
 
       <ChartCard
-        title="Interruption rate"
-        pending={reports.isPending}
-        error={reports.error}
-        onRetry={retry}
-        empty={rates.length === 0}
-      >
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={rates.map((point) => ({ ...point, label: shortDay(point.day), percent: Math.round(point.rate * 100) }))}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" />
-              <YAxis unit="%" />
-              <Tooltip />
-              <Line type="monotone" dataKey="percent" name="Interrupted" stroke="#b45309" strokeWidth={2} dot />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartCard>
-
-      <ChartCard
-        title="Top interruption reasons"
+        title="Interruptions by reason"
+        insight={reasonInsight(reasons)}
         pending={reports.isPending}
         error={reports.error}
         onRetry={retry}
         empty={reasons.length === 0}
+        table={
+          <DataTable
+            caption="Interruptions by reason"
+            columns={['Reason', 'Count']}
+            rows={reasons.map((point) => [point.reason, point.interruptions])}
+          />
+        }
       >
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={reasons} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="reason" width={120} />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
+              <YAxis
+                type="category"
+                dataKey="reason"
+                width={120}
+                stroke="var(--chart-axis)"
+                tick={{ fill: 'var(--chart-axis)' }}
+              />
               <Tooltip />
-              <Bar dataKey="interruptions" name="Interruptions" fill="#be123c" />
+              <Bar dataKey="interruptions" name="Interruptions" fill="var(--chart-4)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -292,10 +316,12 @@ export function ReportsPage() {
 
       <ChartCard
         title="Hour of day"
+        insight={hourInsight(hours)}
         pending={reports.isPending}
         error={reports.error}
         onRetry={retry}
         empty={hours.every((value) => value === 0)}
+        table={<DataTable caption="Focus minutes by hour" columns={['Hour', 'Minutes']} rows={hourRows} />}
       >
         <Heatmap hours={hours} />
       </ChartCard>
@@ -305,8 +331,8 @@ export function ReportsPage() {
 
 function Summary({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
-      <p className="text-sm text-muted">{label}</p>
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <p className="text-xs font-medium tracking-wide text-muted uppercase">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums" data-testid={testId}>
         {value}
       </p>
@@ -317,22 +343,22 @@ function Summary({ label, value, testId }: { label: string; value: string; testI
 function Heatmap({ hours }: { hours: number[] }) {
   const max = Math.max(...hours, 0)
   return (
-    <div className="overflow-x-auto">
-      <div className="grid min-w-[36rem] grid-cols-[repeat(24,minmax(0,1fr))] gap-1">
-        {hours.map((minutes, hour) => {
-          const strength = max > 0 ? minutes / max : 0
-          return (
-            <div key={hour} className="text-center">
-              <div
-                title={`${hour}:00 · ${Math.round(minutes)} min`}
-                className="h-10 rounded-md border border-border"
-                style={{ backgroundColor: `rgba(15, 118, 110, ${0.12 + strength * 0.88})` }}
-              />
-              <p className="mt-1 text-[10px] text-muted">{hour}</p>
-            </div>
-          )
-        })}
-      </div>
+    <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-[repeat(24,minmax(0,1fr))]">
+      {hours.map((minutes, hour) => {
+        const strength = max > 0 ? minutes / max : 0
+        return (
+          <div key={hour} className="min-w-0 text-center">
+            <div
+              title={`${String(hour).padStart(2, '0')}:00 · ${Math.round(minutes)} min`}
+              className="h-10 rounded-md border border-border"
+              style={{
+                backgroundColor: `color-mix(in srgb, var(--chart-1) ${Math.round(12 + strength * 88)}%, transparent)`,
+              }}
+            />
+            <p className="mt-1 text-[10px] tabular-nums text-muted">{hour}</p>
+          </div>
+        )
+      })}
     </div>
   )
 }

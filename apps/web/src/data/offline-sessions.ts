@@ -1,5 +1,4 @@
 import {
-  autoCompleteEnd,
   sessionSchema,
   sessionStartSchema,
   type Session,
@@ -94,7 +93,7 @@ export function createOfflineSessionsRepo(client: SupabaseClient): SessionRepo {
       }
       if (!local || local.id !== id) return null
       return queueSessionPatch(userId, id, {
-        ended_at: autoCompleteEnd(local),
+        ended_at: new Date().toISOString(),
         interrupted: false,
         interrupt_reason: null,
       })

@@ -10,7 +10,10 @@ export function GoalProgress({ progress, label }: { progress: number; label: str
         aria-valuemax={100}
         aria-label={label}
       >
-        <div className="h-full bg-accent" style={{ width: `${width}%` }} />
+        <div
+          className="h-full bg-accent transition-[width] duration-300 ease-[var(--ease-out-smooth)]"
+          style={{ width: `${width}%` }}
+        />
       </div>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>

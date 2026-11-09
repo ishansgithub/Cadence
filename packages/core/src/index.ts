@@ -55,13 +55,18 @@ export type {
 export {
   bestDay,
   currentStreak,
+  dailyInsight,
   dailySeries,
+  estimateInsight,
   estimateVsActual,
   eachDay,
   goalFocusMinutes,
   goalProgress,
+  goalTimeInsight,
+  hourInsight,
   hourTotals,
   interruptionRates,
+  reasonInsight,
   reportRange,
   topReasons,
   weekStartOn,
@@ -75,18 +80,32 @@ export {
   type WeeklyPoint,
 } from './reports'
 export { addCalendarDays, calendarDateInTimeZone, todayInTimeZone, zonedDayBounds } from './dates'
-export { countTasksForGoal, formatGoalTarget } from './goals'
+export { countTasksForGoal, formatGoalTarget, taskCompletionProgress, tasksForGoal } from './goals'
 export { matchGoal, parseQuickAdd, type GoalMatch, type QuickAdd } from './quick-add'
 export { resolveTimeZone } from './time-zone'
 export {
+  applyPause,
+  applyResume,
   autoCompleteEnd,
   completedFocusCount,
+  cycleProgress,
   focusMinutesForTask,
+  focusMinutesToday,
   formatCountdown,
   isExpired,
   nextSessionType,
   remainingSeconds,
+  type PauseClock,
 } from './timer'
-export { filterTasks, isOverdue, partitionToday, type TodayGroups } from './today'
+export {
+  filterTasks,
+  groupTasksForList,
+  isOverdue,
+  partitionToday,
+  type TaskListGroup,
+  type TaskListGroupId,
+  type TodayGroups,
+} from './today'
+export type { TaskDueFilter } from './repos'
 export { mergeQueuedUpdate, replayInOrder, type ApplyOutcome, type SyncKind, type SyncOp, type SyncTable } from './sync'
 export { assignBackupUser, backupCounts, backupSchema, type Backup } from './backup'

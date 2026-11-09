@@ -18,17 +18,22 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <button type="button" className="absolute inset-0 bg-foreground/30" aria-label="Close" onClick={onClose} />
+      <button
+        type="button"
+        className="cadence-scrim absolute inset-0 bg-foreground/30 backdrop-blur-[1px]"
+        aria-label="Close"
+        onClick={onClose}
+      />
       <section
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-4 shadow-xl"
+        className="cadence-dialog relative w-full max-w-lg rounded-2xl border border-border bg-surface p-4"
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg border border-border px-2 py-1 text-sm">
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          <button type="button" onClick={onClose} className="min-h-11 rounded-lg border border-border px-3 text-sm">
             Close
           </button>
         </div>

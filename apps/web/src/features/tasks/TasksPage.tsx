@@ -1,15 +1,38 @@
-import { filterTasks, todayInTimeZone, type Task, type TaskStatus } from '@cadence/core'
+import {
+  filterTasks,
+  groupTasksForList,
+  todayInTimeZone,
+  type Task,
+  type TaskDueFilter,
+  type TaskStatus,
+} from '@cadence/core'
 import { useMemo, useState } from 'react'
 import { EmptyState } from '../../components/EmptyState'
 import { QueryState } from '../../components/QueryState'
+import { SelectMenu } from '../../components/SelectMenu'
 import { useGoals } from '../../data/use-goals'
 import { useTasks } from '../../data/use-tasks'
 import { useSettings } from '../settings/useSettings'
 import { QuickAdd } from './QuickAdd'
 import { TaskDrawer } from './TaskDrawer'
-import { TaskRow } from './TaskRow'
+import { TasksListRow } from './TasksListRow'
 
-const statuses: Array<TaskStatus | 'all'> = ['all', 'todo', 'in_progress', 'done', 'archived']
+const statusOptions: Array<{ value: TaskStatus | 'all'; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'todo', label: 'todo' },
+  { value: 'in_progress', label: 'in progress' },
+  { value: 'done', label: 'done' },
+  { value: 'archived', label: 'archived' },
+]
+const dueOptions: Array<{ value: TaskDueFilter; label: string }> = [
+  { value: 'all', label: 'All dates' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This week' },
+  { value: 'none', label: 'No date' },
+]
+
+const fieldClass = 'mt-1 min-h-11 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm'
 
 export function TasksPage() {
   const tasks = useTasks()
@@ -17,96 +40,73 @@ export function TasksPage() {
   const settings = useSettings()
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [goalId, setGoalId] = useState('all')
-  const [planned, setPlanned] = useState<'all' | 'planned' | 'unplanned'>('all')
-  const [overdueOnly, setOverdueOnly] = useState(false)
+  const [due, setDue] = useState<TaskDueFilter>('all')
   const [search, setSearch] = useState('')
   const [openTask, setOpenTask] = useState<Task | null>(null)
 
   const today = settings.settings ? todayInTimeZone(settings.settings.timezone, new Date()) : null
   const visible = useMemo(() => {
     if (!today) return []
-    let next = filterTasks(tasks.data ?? [], {
+    return filterTasks(tasks.data ?? [], {
       status: status === 'all' ? undefined : status,
       goalId: goalId === 'all' ? undefined : goalId === 'none' ? null : goalId,
+      due,
       search,
-      overdue: overdueOnly,
       today,
     })
-    if (planned === 'planned') next = next.filter((task) => task.planned_for !== null)
-    if (planned === 'unplanned') next = next.filter((task) => task.planned_for === null)
-    return next
-  }, [goalId, overdueOnly, planned, search, status, tasks.data, today])
+  }, [due, goalId, search, status, tasks.data, today])
+
+  const groups = useMemo(() => (today ? groupTasksForList(visible, today) : []), [today, visible])
+  const hasAnyTasks = (tasks.data ?? []).length > 0
 
   return (
     <section className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
-      <div className="mt-4">
+      <div className="sticky top-0 z-20 -mx-4 mt-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
         {today ? (
           <QuickAdd goals={goals.data ?? []} today={today} plannedFor={null} />
         ) : (
           <p className="text-sm text-muted">Loading your time zone…</p>
         )}
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="text-sm" htmlFor="task-status-filter">
-          Status
-          <select
-            id="task-status-filter"
-            value={status}
-            onChange={(event) => setStatus(event.target.value as TaskStatus | 'all')}
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          >
-            {statuses.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm" htmlFor="task-goal-filter">
-          Goal
-          <select
-            id="task-goal-filter"
-            value={goalId}
-            onChange={(event) => setGoalId(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          >
-            <option value="all">All goals</option>
-            <option value="none">No goal</option>
-            {(goals.data ?? []).map((goal) => (
-              <option key={goal.id} value={goal.id}>
-                {goal.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm" htmlFor="task-planned-filter">
-          Planned
-          <select
-            id="task-planned-filter"
-            value={planned}
-            onChange={(event) => setPlanned(event.target.value as 'all' | 'planned' | 'unplanned')}
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
-          >
-            <option value="all">All</option>
-            <option value="planned">Planned</option>
-            <option value="unplanned">Unplanned</option>
-          </select>
-        </label>
-        <label className="text-sm" htmlFor="task-search">
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SelectMenu
+          id="task-status-filter"
+          label="Status"
+          value={status}
+          options={statusOptions}
+          onChange={(next) => setStatus(next as TaskStatus | 'all')}
+        />
+        <SelectMenu
+          id="task-goal-filter"
+          label="Goal"
+          value={goalId}
+          options={[
+            { value: 'all', label: 'All goals' },
+            { value: 'none', label: 'No goal' },
+            ...(goals.data ?? []).map((goal) => ({ value: goal.id, label: goal.title })),
+          ]}
+          onChange={setGoalId}
+        />
+        <SelectMenu
+          id="task-due-filter"
+          label="Due"
+          value={due}
+          options={dueOptions}
+          onChange={(next) => setDue(next as TaskDueFilter)}
+        />
+        <label className="text-sm font-medium" htmlFor="task-search">
           Search
           <input
             id="task-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+            className={fieldClass}
+            placeholder="Title or notes"
           />
         </label>
       </div>
-      <label className="mt-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={overdueOnly} onChange={(event) => setOverdueOnly(event.target.checked)} />
-        Overdue only
-      </label>
 
       <div className="mt-6">
         <QueryState
@@ -120,19 +120,40 @@ export function TasksPage() {
           label="Loading tasks"
         >
           {visible.length === 0 ? (
-            <EmptyState title="No tasks" body="Add one above, or loosen the filters." />
+            <EmptyState
+              title={hasAnyTasks ? 'No tasks match' : 'No tasks yet'}
+              body={
+                hasAnyTasks
+                  ? 'Loosen the filters, or add something new above.'
+                  : 'Add a task above to start building the list.'
+              }
+            />
           ) : (
-            <ul>
-              {visible.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  goals={goals.data ?? []}
-                  today={today ?? ''}
-                  onOpen={() => setOpenTask(task)}
-                />
+            <div className="space-y-8">
+              {groups.map((group) => (
+                <section key={group.id}>
+                  <h2
+                    className={`text-sm font-semibold tracking-wide ${
+                      group.id === 'overdue' ? 'text-overdue' : 'text-foreground'
+                    }`}
+                  >
+                    {group.label}
+                    <span className="ml-2 tabular-nums text-muted">({group.tasks.length})</span>
+                  </h2>
+                  <ul className="mt-2">
+                    {group.tasks.map((task) => (
+                      <TasksListRow
+                        key={task.id}
+                        task={task}
+                        goals={goals.data ?? []}
+                        today={today ?? ''}
+                        onOpen={() => setOpenTask(task)}
+                      />
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           )}
         </QueryState>
       </div>

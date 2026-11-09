@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   bestDay,
   currentStreak,
+  dailyInsight,
   dailySeries,
+  estimateInsight,
   estimateVsActual,
   goalProgress,
+  hourInsight,
   hourTotals,
   interruptionRates,
+  reasonInsight,
   reportRange,
   topReasons,
   weeklyByGoal,
@@ -116,6 +120,26 @@ describe('report shaping', () => {
     expect(currentStreak(daily, '2026-03-05')).toBe(1)
     expect(currentStreak(daily, '2026-03-07')).toBe(0)
     expect(bestDay(dailySeries(daily, { from: '2026-03-02', to: '2026-03-04' }, null))?.day).toBe('2026-03-04')
+  })
+})
+
+describe('insights', () => {
+  it('summarizes daily focus, estimates, reasons, and hours', () => {
+    const daily: DailyFocusRow[] = [
+      { user_id: user, day: '2026-03-02', goal_id: goalA, focus_min: 25, sessions: 1, interrupted_sessions: 0 },
+      { user_id: user, day: '2026-03-04', goal_id: goalB, focus_min: 50, sessions: 2, interrupted_sessions: 1 },
+    ]
+    expect(dailyInsight(dailySeries(daily, { from: '2026-03-02', to: '2026-03-04' }, null))).toContain(
+      'Most focus was on 03-04',
+    )
+    expect(
+      estimateInsight([
+        { taskId: '1', title: 'A', estimateMin: 50, actualMin: 60 },
+        { taskId: '2', title: 'B', estimateMin: 50, actualMin: 60 },
+      ]),
+    ).toContain('20% over')
+    expect(reasonInsight([{ reason: 'Distracted', interruptions: 3 }])).toContain('Distracted')
+    expect(hourInsight(Array.from({ length: 24 }, (_, hour) => (hour === 10 ? 40 : 0)))).toContain('10:00')
   })
 })
 
