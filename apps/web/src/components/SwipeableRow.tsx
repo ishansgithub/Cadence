@@ -39,7 +39,7 @@ export function SwipeableRow({
   return (
     <div className="relative overflow-hidden md:overflow-visible">
       <div
-        className="absolute inset-y-0 right-0 flex md:hidden"
+        className="absolute inset-y-1 right-0 flex md:hidden"
         aria-hidden={offset === 0}
       >
         <button
@@ -48,7 +48,7 @@ export function SwipeableRow({
             setOffset(0)
             onComplete()
           }}
-          className="flex min-h-11 w-[72px] items-center justify-center bg-done-surface text-sm font-medium text-done"
+          className="flex min-h-11 w-[72px] items-center justify-center rounded-l-[var(--radius-md)] bg-done-surface text-sm font-semibold text-done"
         >
           {completeLabel}
         </button>
@@ -58,14 +58,14 @@ export function SwipeableRow({
             setOffset(0)
             onDelete()
           }}
-          className="flex min-h-11 w-[72px] items-center justify-center bg-danger-surface text-sm font-medium text-danger"
+          className="flex min-h-11 w-[72px] items-center justify-center rounded-r-[var(--radius-md)] bg-danger-surface text-sm font-semibold text-danger"
         >
           Delete
         </button>
       </div>
       <div
         className={`relative bg-background max-md:translate-x-[var(--swipe-x)] ${
-          dragging ? '' : 'transition-transform duration-150 motion-reduce:transition-none'
+          dragging ? '' : 'transition-transform duration-300 ease-[var(--ease-spring)] motion-reduce:transition-none'
         }`}
         style={{ ['--swipe-x' as string]: `${offset}px` }}
         onTouchStart={onTouchStart}

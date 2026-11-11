@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { errorMessage } from '../data/errors'
 import { EmptyState } from './EmptyState'
+import { ChunkyButton } from './ui/ChunkyButton'
 
 export function QueryState({
   isPending,
@@ -20,9 +21,9 @@ export function QueryState({
   if (isPending) {
     return (
       <div className="space-y-3" aria-busy="true" aria-label={label}>
-        <div className="h-8 w-40 animate-pulse rounded-lg bg-border" />
-        <div className="h-24 animate-pulse rounded-2xl bg-border" />
-        <div className="h-24 animate-pulse rounded-2xl bg-border" />
+        <div className="skeleton h-9 w-44" />
+        <div className="skeleton h-28" />
+        <div className="skeleton h-28" />
       </div>
     )
   }
@@ -32,9 +33,7 @@ export function QueryState({
         title="Could not load this page"
         body={errorMessage(error)}
         action={
-          <button type="button" onClick={onRetry} className="min-h-11 rounded-lg border border-border px-3 text-sm">
-            Try again
-          </button>
+          <ChunkyButton onClick={onRetry}>Try again</ChunkyButton>
         }
       />
     )

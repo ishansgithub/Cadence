@@ -1,3 +1,6 @@
+import { motion } from 'motion/react'
+import { StatBadge } from '../../components/ui/ChunkyCard'
+
 export function DaySummary({
   focusMinutes,
   doneCount,
@@ -9,24 +12,32 @@ export function DaySummary({
 }) {
   const focusLabel =
     focusMinutes < 1 ? '0 min' : focusMinutes < 60 ? `${Math.round(focusMinutes)} min` : `${(focusMinutes / 60).toFixed(1)} h`
+  const ratio = plannedCount > 0 ? Math.min(1, doneCount / plannedCount) : 0
 
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3">
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs font-medium tracking-wide text-muted uppercase">Focus so far</dt>
-          <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight">{focusLabel}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium tracking-wide text-muted uppercase">Tasks</dt>
-          <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight">
-            <span className="text-done">{doneCount}</span>
+    <div className="grid grid-cols-2 gap-3">
+      <StatBadge tone="peach" label="Focus so far" value={focusLabel} hint="Today" />
+      <StatBadge
+        tone="sage"
+        label="Tasks"
+        value={
+          <>
+            {doneCount}
             <span className="text-muted"> / </span>
             {plannedCount}
-            <span className="ml-1 text-sm font-normal text-muted">planned</span>
-          </dd>
-        </div>
-      </dl>
+          </>
+        }
+        hint={
+          <span className="mt-1.5 block h-2 overflow-hidden rounded-full border-[1.5px] border-line bg-surface">
+            <motion.span
+              className="block h-full rounded-full bg-tone-strong"
+              initial={{ width: 0 }}
+              animate={{ width: `${ratio * 100}%` }}
+              transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+            />
+          </span>
+        }
+      />
     </div>
   )
 }

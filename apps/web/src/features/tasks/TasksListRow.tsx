@@ -1,10 +1,14 @@
 import { isOverdue, type Goal, type Task } from '@cadence/core'
+import { motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { GoalChip } from '../../components/GoalChip'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { useDeleteTask, useSetTaskStatus, useUpdateTask } from '../../data/use-tasks'
+import { staggerChild } from '../../components/ui/variants'
+import { toneFor } from '../../lib/palette'
 import { useTimer } from '../timer/useTimer'
+import { PlayButton } from './TaskRow'
 
 export function TasksListRow({
   task,
@@ -25,6 +29,7 @@ export function TasksListRow({
   const overdue = isOverdue(task, today)
   const done = task.status === 'done'
   const running = timer.active?.type === 'focus' && timer.active.task_id === task.id
+  const tone = goal ? toneFor(goal.id) : overdue ? 'rose' : 'peach'
   const [confirming, setConfirming] = useState(false)
   const [editingEstimate, setEditingEstimate] = useState(false)
   const [editingDue, setEditingDue] = useState(false)
@@ -67,19 +72,24 @@ export function TasksListRow({
 
   const row = (
     <div
-      className={`flex items-center gap-2 border-b border-border py-3 md:gap-3 ${running ? 'bg-accent-muted/40' : ''}`}
+      className={`tone-${tone} chunky-soft chunky-hover flex items-center gap-2 px-3 py-1 md:gap-3 ${
+        running ? 'chunky-tone !border-line' : ''
+      } ${done ? 'opacity-70' : ''}`}
     >
       <input
         type="checkbox"
-        className="size-5 shrink-0 accent-[var(--accent)]"
         checked={done}
         aria-label={done ? `Mark ${task.title} not done` : `Mark ${task.title} done`}
         onChange={() => setStatus.mutate({ id: task.id, status: done ? 'todo' : 'done' })}
       />
-      <button type="button" onClick={onOpen} className="min-h-11 min-w-0 flex-1 text-left">
-        <span className={done ? 'text-muted line-through' : ''}>{task.title}</span>
+      <button type="button" onClick={onOpen} className="min-h-11 min-w-0 flex-1 text-left active:!scale-100">
+        <span className={`font-medium ${done ? 'text-muted line-through decoration-2' : ''}`}>{task.title}</span>
       </button>
-      {goal ? <GoalChip title={goal.title} /> : null}
+      {goal ? (
+        <span className="hidden sm:inline-flex">
+          <GoalChip title={goal.title} id={goal.id} />
+        </span>
+      ) : null}
 
       {editingEstimate ? (
         <input
@@ -98,13 +108,13 @@ export function TasksListRow({
               setEditingEstimate(false)
             }
           }}
-          className="w-16 min-h-11 rounded-lg border border-border bg-surface px-2 text-sm tabular-nums"
+          className="chunky-input !w-16 !px-2 text-sm tabular-nums"
         />
       ) : (
         <button
           type="button"
           onClick={() => setEditingEstimate(true)}
-          className="min-h-11 shrink-0 rounded-lg px-2 text-sm tabular-nums text-muted hover:bg-surface"
+          className="min-h-9 shrink-0 rounded-full px-2.5 text-xs font-semibold tabular-nums text-muted hover:bg-foreground/5 hover:text-foreground"
           aria-label={`Edit estimate for ${task.title}`}
         >
           {task.estimate_min ? `${task.estimate_min}m` : 'Add est.'}
@@ -126,14 +136,14 @@ export function TasksListRow({
               setEditingDue(false)
             }
           }}
-          className="min-h-11 max-w-[9.5rem] rounded-lg border border-border bg-surface px-2 text-sm tabular-nums"
+          className="chunky-input !w-auto max-w-[9.5rem] !px-2 text-sm tabular-nums"
         />
       ) : (
         <button
           type="button"
           onClick={() => setEditingDue(true)}
-          className={`min-h-11 shrink-0 rounded-lg px-2 text-sm tabular-nums hover:bg-surface ${
-            overdue ? 'text-overdue' : 'text-muted'
+          className={`min-h-9 shrink-0 rounded-full px-2.5 text-xs font-semibold tabular-nums hover:bg-foreground/5 ${
+            overdue ? 'bg-overdue-surface text-overdue' : 'text-muted hover:text-foreground'
           }`}
           aria-label={`Edit due date for ${task.title}`}
         >
@@ -142,21 +152,18 @@ export function TasksListRow({
       )}
 
       {!done ? (
-        <button
-          type="button"
-          aria-label={`Start focus on ${task.title}`}
+        <PlayButton
+          title={task.title}
           disabled={timer.loading || Boolean(timer.active)}
           onClick={() => void timer.startFocus(task.id)}
-          className="hidden min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-sm font-medium text-accent disabled:opacity-50 sm:inline-flex"
-        >
-          Play
-        </button>
+          className="max-sm:!hidden"
+        />
       ) : null}
     </div>
   )
 
   return (
-    <li>
+    <motion.li layout variants={staggerChild} exit="exit">
       <SwipeableRow
         completeLabel={done ? 'Undo' : 'Done'}
         onComplete={() => setStatus.mutate({ id: task.id, status: done ? 'todo' : 'done' })}
@@ -175,6 +182,6 @@ export function TasksListRow({
           setConfirming(false)
         }}
       />
-    </li>
+    </motion.li>
   )
 }

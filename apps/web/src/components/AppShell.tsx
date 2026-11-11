@@ -1,41 +1,96 @@
-import { appName } from '@cadence/core'
+import { LayoutGroup, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useSyncStatus } from '../data/use-sync'
 import { useAuth } from '../features/auth/useAuth'
 import { useSettings } from '../features/settings/useSettings'
-import { MiniTimerBar } from '../features/timer/MiniTimerBar'
+import { MiniTimerBar, MiniTimerIndicator } from '../features/timer/MiniTimerBar'
 import { useTimer } from '../features/timer/useTimer'
 import { AccountMenu } from './AccountMenu'
 import { Modal } from './Modal'
 import { UpdatePrompt } from './UpdatePrompt'
+import { IconButton } from './ui/ChunkyButton'
+import { Icon, type IconName } from './ui/Icon'
+import { Logo } from './ui/Logo'
+import { PageTransition } from './ui/motion'
 
-const navItems = [
-  { to: '/today', label: 'Today' },
-  { to: '/tasks', label: 'Tasks' },
-  { to: '/goals', label: 'Goals' },
-  { to: '/reports', label: 'Reports' },
+const navItems: { to: string; label: string; icon: IconName }[] = [
+  { to: '/today', label: 'Today', icon: 'today' },
+  { to: '/tasks', label: 'Tasks', icon: 'tasks' },
+  { to: '/goals', label: 'Goals', icon: 'goals' },
+  { to: '/reports', label: 'Reports', icon: 'reports' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ]
 
-function navClass(isActive: boolean, layout: 'side' | 'tab') {
-  const base =
-    layout === 'side'
-      ? 'flex min-h-11 items-center rounded-lg px-3 text-sm font-medium'
-      : 'flex min-h-11 flex-1 flex-col items-center justify-center px-1 py-2 text-xs font-medium'
-  return isActive
-    ? `${base} bg-accent-muted text-accent`
-    : `${base} text-muted hover:bg-background hover:text-foreground`
-}
-
-function Navigation({ layout }: { layout: 'side' | 'tab' }) {
+function Dock() {
   return (
-    <>
-      {navItems.map((item) => (
-        <NavLink key={item.to} to={item.to} className={({ isActive }) => navClass(isActive, layout)}>
-          {item.label}
-        </NavLink>
-      ))}
-    </>
+    <LayoutGroup id="dock">
+      <nav
+        aria-label="Primary"
+        className="chunky pointer-events-auto flex items-center gap-1 !rounded-full p-1.5"
+      >
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            aria-label={item.label}
+            className="group relative flex min-h-11 items-center justify-center rounded-full px-3 sm:px-3.5"
+          >
+            {({ isActive }) => (
+              <>
+                {isActive ? (
+                  <motion.span
+                    layoutId="dock-pill"
+                    className="absolute inset-0 rounded-full bg-ink"
+                    transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+                  />
+                ) : (
+                  <span className="absolute inset-0 rounded-full bg-foreground/0 transition-colors group-hover:bg-foreground/6" />
+                )}
+                <span
+                  className={`relative flex items-center gap-2 text-sm font-semibold ${
+                    isActive ? 'text-ink-foreground' : 'text-foreground'
+                  }`}
+                >
+                  <motion.span
+                    className="inline-flex"
+                    whileHover={{ rotate: isActive ? 0 : -12, scale: 1.12 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+                  >
+                    <Icon name={item.icon} size={20} strokeWidth={2.2} />
+                  </motion.span>
+                  {isActive ? (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                      className="hidden overflow-hidden whitespace-nowrap sm:inline"
+                    >
+                      {item.label}
+                    </motion.span>
+                  ) : null}
+                </span>
+                {!isActive ? (
+                  <span className="pointer-events-none absolute -top-10 left-1/2 hidden -translate-x-1/2 translate-y-1 rounded-full bg-ink px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-ink-foreground opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 md:block">
+                    {item.label}
+                  </span>
+                ) : null}
+              </>
+            )}
+          </NavLink>
+        ))}
+        <span className="mx-0.5 h-7 w-0.5 rounded-full bg-border" aria-hidden />
+        <Link
+          to="/focus"
+          aria-label="Focus"
+          title="Focus"
+          className="chunky-btn tone-peach relative !size-11 !min-h-11 !p-0 bg-tone text-foreground"
+        >
+          <Icon name="play" size={18} strokeWidth={2.4} />
+          <MiniTimerIndicator />
+        </Link>
+      </nav>
+    </LayoutGroup>
   )
 }
 
@@ -49,9 +104,21 @@ function ShellFrame() {
   const { active, startFocus, pauseTimer, resumeTimer, paused, skipBreak } = useTimer()
   const { offline, pending } = useSyncStatus()
   const navigate = useNavigate()
+  const location = useLocation()
   const [signOutError, setSignOutError] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [location.pathname])
 
   useEffect(() => {
     let waitingForNav = false
@@ -117,110 +184,88 @@ function ShellFrame() {
     }
   }
 
+  function onQuickAdd() {
+    const input = document.getElementById('quick-add')
+    if (input) {
+      input.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      input.focus({ preventScroll: true })
+      return
+    }
+    void navigate('/today')
+    window.setTimeout(() => document.getElementById('quick-add')?.focus(), 450)
+  }
+
   return (
-    <div className="min-h-svh md:grid md:h-svh md:grid-cols-[15rem_1fr] md:overflow-hidden">
-      <aside className="hidden border-r border-border bg-surface md:flex md:h-full md:flex-col md:p-3">
-        <div className="flex min-h-11 items-center px-3">
-          <p className="text-lg font-semibold tracking-tight">{appName}</p>
-        </div>
-        <nav aria-label="Primary" className="mt-4 flex-1 space-y-1">
-          <Navigation layout="side" />
-        </nav>
-        <div className="mt-auto space-y-2 border-t border-border pt-3">
-          <MiniTimerBar layout="sidebar" />
-          <AccountMenu email={user?.email} onSignOut={() => void onSignOut()} />
-        </div>
-      </aside>
-
-      {mobileMenuOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button
-            type="button"
-            className="cadence-scrim absolute inset-0 bg-foreground/30"
-            aria-label="Close menu"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <aside className="cadence-drawer absolute inset-y-0 left-0 flex w-[16rem] flex-col border-r border-border bg-surface p-3">
-            <div className="flex min-h-11 items-center justify-between px-3">
-              <p className="text-lg font-semibold tracking-tight">{appName}</p>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="min-h-11 rounded-lg px-2 text-sm text-muted"
-              >
-                Close
-              </button>
-            </div>
-            <nav
-              aria-label="Primary"
-              className="mt-4 flex-1 space-y-1"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Navigation layout="side" />
-            </nav>
-            <div className="mt-auto space-y-2 border-t border-border pt-3">
-              <AccountMenu email={user?.email} onSignOut={() => void onSignOut()} />
-            </div>
-          </aside>
-        </div>
-      ) : null}
-
-      <div
-        className={`cadence-scroll flex min-h-svh flex-col md:min-h-0 md:overflow-y-auto ${active ? 'pb-28' : 'pb-16'} md:pb-0`}
+    <div className="min-h-svh">
+      <header
+        className={`sticky top-0 z-40 transition-[background-color,box-shadow,backdrop-filter] duration-300 ${
+          scrolled ? 'bg-background/80 shadow-[0_1px_0_0_var(--border)] backdrop-blur-md' : ''
+        }`}
       >
-        <UpdatePrompt />
-        <div className="flex items-center gap-2 px-4 py-3 md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="min-h-11 rounded-lg border border-border bg-surface px-3 text-sm font-medium"
-            aria-label="Open menu"
-          >
-            Menu
-          </button>
-          <p className="text-lg font-semibold tracking-tight">{appName}</p>
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 md:px-8 md:py-4">
+          <IconButton icon="dots" label="Shortcuts and help" onClick={() => setHelpOpen(true)} />
+          <Link to="/" className="rounded-full" aria-label="Cadence home">
+            <Logo size={30} />
+          </Link>
+          <div className="ml-auto flex items-center gap-2.5">
+            <IconButton icon="plus" label="New task" variant="primary" onClick={onQuickAdd} />
+            <AccountMenu email={user?.email} onSignOut={() => void onSignOut()} />
+          </div>
         </div>
-        {pending ? (
-          <p className="border-b border-warning/30 bg-warning-surface px-4 py-2 text-sm text-warning md:px-6">
-            Offline, changes pending
-          </p>
-        ) : offline ? (
-          <p className="border-b border-warning/30 bg-warning-surface px-4 py-2 text-sm text-warning md:px-6">
-            Offline
+      </header>
+
+      <UpdatePrompt />
+
+      <div className="mx-auto max-w-6xl px-4 md:px-8">
+        {pending || offline ? (
+          <p className="cadence-enter tone-butter mt-2 inline-flex items-center gap-2 rounded-full border-2 border-tone-slab bg-tone px-3 py-1 text-sm font-medium text-warning">
+            <Icon name="cloud-off" size={16} />
+            {pending ? 'Offline, changes pending' : 'Offline'}
           </p>
         ) : null}
-        <div className="md:hidden">
-          <MiniTimerBar layout="mobile" />
-        </div>
         {error ? (
-          <p role="alert" className="bg-danger-surface px-4 py-2 text-sm text-danger md:px-6">
+          <p role="alert" className="mt-2 rounded-[var(--radius-md)] bg-danger-surface px-4 py-2 text-sm text-danger">
             {error}
           </p>
         ) : null}
         {signOutError ? (
-          <p role="alert" className="bg-danger-surface px-4 py-2 text-sm text-danger md:px-6">
+          <p role="alert" className="mt-2 rounded-[var(--radius-md)] bg-danger-surface px-4 py-2 text-sm text-danger">
             {signOutError}
           </p>
         ) : null}
-        <main className="flex-1 px-4 py-6 md:px-6">
-          <Outlet />
-        </main>
-        <Modal open={helpOpen} title="Shortcuts" onClose={() => setHelpOpen(false)}>
-          <ul className="space-y-2 text-sm">
-            <li>`n` new task</li>
-            <li>`space` start, pause, or resume the timer</li>
-            <li>`g` then `t`, `g`, `r`, `s`, or `f` for Today, Goals, Reports, Settings, Focus</li>
-            <li>`?` this list</li>
-          </ul>
-        </Modal>
       </div>
 
-      <nav
-        aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface md:hidden"
-      >
-        <Navigation layout="tab" />
-      </nav>
+      <main className={`mx-auto max-w-6xl px-4 pt-4 md:px-8 md:pt-6 ${active ? 'pb-52' : 'pb-36'}`}>
+        <PageTransition routeKey={location.pathname}>
+          <Outlet />
+        </PageTransition>
+      </main>
+
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-3 px-3 pb-4 md:pb-6">
+        <MiniTimerBar />
+        <Dock />
+      </div>
+
+      <Modal open={helpOpen} title="Shortcuts" onClose={() => setHelpOpen(false)}>
+        <ul className="space-y-2.5 text-sm">
+          {[
+            ['n', 'New task'],
+            ['space', 'Start, pause, or resume the timer'],
+            ['g then t / g / r / s / f', 'Today, Goals, Reports, Settings, Focus'],
+            ['?', 'This list'],
+          ].map(([keys, description]) => (
+            <li key={keys} className="flex items-center justify-between gap-3">
+              <span className="text-muted">{description}</span>
+              <kbd className="rounded-lg border-2 border-line bg-background px-2 py-0.5 font-mono text-xs font-semibold shadow-[1px_2px_0_0_var(--sand-slab)]">
+                {keys}
+              </kbd>
+            </li>
+          ))}
+        </ul>
+        <Link to="/" className="mt-5 inline-flex text-sm font-semibold underline underline-offset-4">
+          About Cadence
+        </Link>
+      </Modal>
     </div>
   )
 }

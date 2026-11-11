@@ -2,9 +2,10 @@ import type { Goal, Task, TaskStatus } from '@cadence/core'
 import { useState } from 'react'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Drawer } from '../../components/Drawer'
+import { ChunkyButton } from '../../components/ui/ChunkyButton'
 import { useDeleteTask, useUpdateTask } from '../../data/use-tasks'
 
-const fieldClass = 'mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2'
+const fieldClass = 'chunky-input mt-1.5 font-normal'
 const statuses: TaskStatus[] = ['todo', 'in_progress', 'done', 'archived']
 
 export function TaskDrawer({
@@ -16,9 +17,12 @@ export function TaskDrawer({
   goals: Goal[]
   onClose: () => void
 }) {
+  const [shown, setShown] = useState(task)
+  if (task && task !== shown) setShown(task)
+
   return (
     <Drawer open={task !== null} title="Task" onClose={onClose}>
-      {task ? <TaskForm key={task.id} task={task} goals={goals} onClose={onClose} /> : null}
+      {shown ? <TaskForm key={shown.id} task={shown} goals={goals} onClose={onClose} /> : null}
     </Drawer>
   )
 }
@@ -87,6 +91,7 @@ function TaskForm({ task, goals, onClose }: { task: Task; goals: Goal[]; onClose
           className={fieldClass}
         />
       </label>
+      <div className="grid gap-4 sm:grid-cols-2">
       <label className="block text-sm font-medium" htmlFor="task-due">
         Due date
         <input id="task-due" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className={fieldClass} />
@@ -101,6 +106,7 @@ function TaskForm({ task, goals, onClose }: { task: Task; goals: Goal[]; onClose
           className={fieldClass}
         />
       </label>
+      </div>
       <label className="block text-sm font-medium" htmlFor="task-goal">
         Goal
         <select id="task-goal" value={goalId} onChange={(event) => setGoalId(event.target.value)} className={fieldClass}>
@@ -128,22 +134,17 @@ function TaskForm({ task, goals, onClose }: { task: Task; goals: Goal[]; onClose
         </select>
       </label>
       {error ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="rounded-[var(--radius-sm)] bg-danger-surface px-3 py-2 text-sm text-danger">
           {error}
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={updateTask.isPending}
-          onClick={save}
-          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-60"
-        >
+      <div className="flex flex-wrap gap-3 pt-2">
+        <ChunkyButton variant="primary" icon="check" loading={updateTask.isPending} onClick={save}>
           {updateTask.isPending ? 'Saving…' : 'Save'}
-        </button>
-        <button type="button" onClick={() => setConfirming(true)} className="rounded-lg border border-border px-3 py-2 text-sm">
+        </ChunkyButton>
+        <ChunkyButton variant="danger" icon="trash" onClick={() => setConfirming(true)}>
           Delete
-        </button>
+        </ChunkyButton>
       </div>
       <ConfirmDialog
         open={confirming}

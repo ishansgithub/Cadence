@@ -7,11 +7,15 @@ import {
   type SettingsUpdate,
 } from '@cadence/core'
 import { useQueryClient } from '@tanstack/react-query'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
+import { ChunkyButton } from '../../components/ui/ChunkyButton'
+import { Icon } from '../../components/ui/Icon'
 import { useToast } from '../../components/useToast'
+import type { Tone } from '../../lib/palette'
 import { exportBackup, importBackup } from '../../data/backup-repo'
 import { deleteCadenceData } from '../../data/delete-account'
 import { errorMessage } from '../../data/errors'
@@ -29,14 +33,25 @@ const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 
 type SectionId = 'timer' | 'general' | 'notifications' | 'appearance' | 'blocklists' | 'data'
 
-const sections: Array<{ id: SectionId; label: string; blurb: string }> = [
-  { id: 'timer', label: 'Timer', blurb: 'Focus and break lengths' },
-  { id: 'general', label: 'General', blurb: 'Week start and time zone' },
-  { id: 'notifications', label: 'Notifications and sound', blurb: 'Session-end alerts' },
-  { id: 'appearance', label: 'Appearance', blurb: 'Light, dark, or system' },
-  { id: 'blocklists', label: 'Blocklists', blurb: 'Domains to block while focusing' },
-  { id: 'data', label: 'Data', blurb: 'Export, import, delete account' },
+const sections: Array<{ id: SectionId; label: string; blurb: string; emoji: string; tone: Tone }> = [
+  { id: 'timer', label: 'Timer', blurb: 'Focus and break lengths', emoji: '⏱️', tone: 'peach' },
+  { id: 'general', label: 'General', blurb: 'Week start and time zone', emoji: '🗓️', tone: 'sky' },
+  { id: 'notifications', label: 'Notifications and sound', blurb: 'Session-end alerts', emoji: '🔔', tone: 'butter' },
+  { id: 'appearance', label: 'Appearance', blurb: 'Light, dark, or system', emoji: '🎨', tone: 'lilac' },
+  { id: 'blocklists', label: 'Blocklists', blurb: 'Domains to block while focusing', emoji: '🚧', tone: 'rose' },
+  { id: 'data', label: 'Data', blurb: 'Export, import, delete account', emoji: '📦', tone: 'sage' },
 ]
+
+function SectionEmoji({ emoji, tone }: { emoji: string; tone: Tone }) {
+  return (
+    <span
+      aria-hidden
+      className={`tone-${tone} grid size-10 shrink-0 place-items-center rounded-full border-2 border-line bg-tone text-lg`}
+    >
+      {emoji}
+    </span>
+  )
+}
 
 export function SettingsPage() {
   const { settings, loading, error } = useSettings()
@@ -57,7 +72,7 @@ export function SettingsPage() {
   if (error || !settings) {
     return (
       <section className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-4xl md:text-5xl">Settings</h1>
         <p className="mt-3 text-sm text-danger">{error ?? 'Settings are unavailable.'}</p>
       </section>
     )
@@ -67,41 +82,36 @@ export function SettingsPage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-      <p className="mt-1 text-sm text-muted">Timer, preferences, and your data.</p>
+      <h1 className="text-4xl md:text-5xl">Settings</h1>
+      <p className="mt-1 text-muted">Timer, preferences, and your data.</p>
 
       {/* Mobile: list or detail */}
       <div className="mt-6 md:hidden">
         {section === null ? (
-          <ul className="cadence-enter divide-y divide-border rounded-xl border border-border bg-surface">
+          <ul className="cadence-enter space-y-2.5">
             {sections.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
                   onClick={() => setSection(item.id)}
-                  className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  className={`tone-${item.tone} chunky chunky-hover flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left`}
                 >
-                  <span>
-                    <span className="block font-medium">{item.label}</span>
+                  <SectionEmoji emoji={item.emoji} tone={item.tone} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{item.label}</span>
                     <span className="block text-sm text-muted">{item.blurb}</span>
                   </span>
-                  <span className="text-muted" aria-hidden>
-                    →
-                  </span>
+                  <Icon name="arrow-right" size={18} strokeWidth={2.4} />
                 </button>
               </li>
             ))}
           </ul>
         ) : (
           <div key={section} className="cadence-enter">
-            <button
-              type="button"
-              onClick={() => setSection(null)}
-              className="min-h-11 text-sm font-medium text-accent"
-            >
+            <ChunkyButton size="sm" icon="arrow-left" onClick={() => setSection(null)}>
               Back to settings
-            </button>
-            <div className="mt-4">
+            </ChunkyButton>
+            <div className="chunky mt-4 p-5">
               <SectionBody id={section} />
             </div>
           </div>
@@ -109,23 +119,47 @@ export function SettingsPage() {
       </div>
 
       {/* Desktop: two-pane */}
-      <div className="mt-6 hidden gap-6 md:grid md:grid-cols-[14rem_1fr]">
-        <nav aria-label="Settings sections" className="space-y-1">
-          {sections.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setDesktopSection(item.id)}
-              className={`block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-medium ${
-                active === item.id ? 'bg-accent-muted text-accent' : 'text-muted hover:text-foreground'
-              }`}
+      <div className="mt-8 hidden gap-8 md:grid md:grid-cols-[17rem_1fr]">
+        <LayoutGroup id="settings-nav">
+          <nav aria-label="Settings sections" className="space-y-1.5">
+            {sections.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-current={active === item.id ? 'page' : undefined}
+                onClick={() => setDesktopSection(item.id)}
+                className={`group relative flex min-h-13 w-full items-center gap-3 rounded-full py-1.5 pr-4 pl-1.5 text-left text-sm font-semibold active:!scale-100 ${
+                  active === item.id ? 'text-ink-foreground' : 'text-foreground hover:bg-foreground/5'
+                }`}
+              >
+                {active === item.id ? (
+                  <motion.span
+                    layoutId="settings-pill"
+                    className="absolute inset-0 rounded-full bg-ink"
+                    transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+                  />
+                ) : null}
+                <span className="relative transition-transform duration-300 ease-[var(--ease-spring)] group-hover:-rotate-6 group-hover:scale-110">
+                  <SectionEmoji emoji={item.emoji} tone={item.tone} />
+                </span>
+                <span className="relative">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </LayoutGroup>
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 14, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+              className={`chunky tone-${sections.find((item) => item.id === active)?.tone ?? 'peach'} p-6`}
             >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <div key={active} className="cadence-enter rounded-xl border border-border bg-surface p-5">
-          <SectionBody id={active} />
+              <SectionBody id={active} />
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </section>
@@ -150,7 +184,7 @@ function SectionBody({ id }: { id: SectionId }) {
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-lg font-semibold tracking-tight">{children}</h2>
+  return <h2 className="text-2xl font-bold">{children}</h2>
 }
 
 function TimerSection() {
@@ -185,6 +219,7 @@ function TimerSection() {
   return (
     <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
       <SectionTitle>Timer</SectionTitle>
+      <div className="grid gap-4 sm:grid-cols-2">
       <NumberField name="focus_min" label="Focus minutes" defaultValue={current.focus_min} />
       <NumberField name="short_break_min" label="Short break minutes" defaultValue={current.short_break_min} />
       <NumberField name="long_break_min" label="Long break minutes" defaultValue={current.long_break_min} />
@@ -193,6 +228,7 @@ function TimerSection() {
         label="Sessions before long break"
         defaultValue={current.sessions_before_long_break}
       />
+      </div>
       <SaveButton pending={pending} notice={notice} />
     </form>
   )
@@ -232,7 +268,7 @@ function GeneralSection() {
         <select
           name="week_starts_on"
           defaultValue={current.week_starts_on}
-          className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3"
+          className="mt-1.5 w-full font-normal"
         >
           {weekdays.map((day, index) => (
             <option key={day} value={index}>
@@ -246,7 +282,7 @@ function GeneralSection() {
         <input
           name="timezone"
           defaultValue={current.timezone}
-          className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3"
+          className="chunky-input mt-1.5 font-normal"
         />
       </label>
       <SaveButton pending={pending} notice={notice} />
@@ -283,11 +319,11 @@ function NotificationsSection() {
   return (
     <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
       <SectionTitle>Notifications and sound</SectionTitle>
-      <label className="flex min-h-11 items-center gap-2 text-sm">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
         <input type="checkbox" name="sound_enabled" defaultChecked={current.sound_enabled} />
         Sound when a session ends
       </label>
-      <label className="flex min-h-11 items-center gap-2 text-sm">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
         <input type="checkbox" name="notifications_enabled" defaultChecked={current.notifications_enabled} />
         Notifications when a session ends
       </label>
@@ -360,50 +396,46 @@ function BlocklistsSection() {
         </p>
       ) : null}
       {(lists.data ?? []).length === 0 && !lists.isPending ? (
-        <EmptyState title="No blocklists" body="Create one to prepare domains for focus sessions." />
+        <EmptyState mascot="bear" title="No blocklists" body="Create one to prepare domains for focus sessions." />
       ) : (
         <ul className="space-y-2">
           {(lists.data ?? []).map((list) => (
-            <li key={list.id} className="rounded-xl border border-border px-3 py-3">
+            <li key={list.id} className="chunky-soft chunky-hover px-4 py-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="font-medium">
                     {list.name}
-                    {list.is_default ? <span className="ml-2 text-xs text-muted">Default</span> : null}
+                    {list.is_default ? (
+                      <span className="ml-2 rounded-full bg-ink px-2 py-0.5 text-xs font-semibold text-ink-foreground">
+                        Default
+                      </span>
+                    ) : null}
                   </p>
                   <p className="mt-1 text-sm text-muted">
                     {list.domains.length === 0 ? 'No domains' : list.domains.join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(list)}
-                    className="min-h-11 rounded-lg border border-border px-3 text-sm"
-                  >
+                  <ChunkyButton size="sm" onClick={() => startEdit(list)}>
                     Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove.mutate(list.id)}
-                    className="min-h-11 rounded-lg border border-border px-3 text-sm text-danger"
-                  >
+                  </ChunkyButton>
+                  <ChunkyButton size="sm" variant="danger" onClick={() => remove.mutate(list.id)}>
                     Delete
-                  </button>
+                  </ChunkyButton>
                 </div>
               </div>
             </li>
           ))}
         </ul>
       )}
-      <div className="space-y-3 rounded-xl border border-dashed border-border p-4">
-        <p className="text-sm font-medium">{editing ? 'Edit blocklist' : 'New blocklist'}</p>
+      <div className="space-y-3 rounded-[var(--radius-lg)] border-2 border-dashed border-border p-4">
+        <p className="font-display text-lg font-bold">{editing ? 'Edit blocklist' : 'New blocklist'}</p>
         <label className="block text-sm font-medium">
           Name
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3"
+            className="chunky-input mt-1.5 font-normal"
           />
         </label>
         <label className="block text-sm font-medium">
@@ -412,27 +444,23 @@ function BlocklistsSection() {
             value={domains}
             onChange={(event) => setDomains(event.target.value)}
             placeholder="reddit.com, youtube.com"
-            className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3"
+            className="chunky-input mt-1.5 font-normal"
           />
         </label>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
           <input type="checkbox" checked={isDefault} onChange={(event) => setIsDefault(event.target.checked)} />
           Default list
         </label>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
+          <ChunkyButton
+            variant="primary"
+            icon={editing ? 'check' : 'plus'}
             onClick={save}
-            disabled={create.isPending || update.isPending}
-            className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground disabled:opacity-60"
+            loading={create.isPending || update.isPending}
           >
             {editing ? 'Save list' : 'Add list'}
-          </button>
-          {editing ? (
-            <button type="button" onClick={startCreate} className="min-h-11 rounded-lg border border-border px-4 text-sm">
-              Cancel
-            </button>
-          ) : null}
+          </ChunkyButton>
+          {editing ? <ChunkyButton onClick={startCreate}>Cancel</ChunkyButton> : null}
         </div>
       </div>
     </div>
@@ -481,14 +509,14 @@ function DataSection() {
     <div className="space-y-6">
       <SectionTitle>Data</SectionTitle>
       <div className="space-y-3">
-        <p className="text-sm font-medium">Export</p>
-        <button type="button" onClick={() => void onExport()} className="min-h-11 rounded-lg border border-border px-4 text-sm">
+        <p className="text-sm font-semibold">Export</p>
+        <ChunkyButton icon="arrow-right" onClick={() => void onExport()}>
           Download JSON
-        </button>
+        </ChunkyButton>
       </div>
       <div className="space-y-3">
-        <p className="text-sm font-medium">Import</p>
-        <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-border px-4 text-sm">
+        <p className="text-sm font-semibold">Import</p>
+        <label className="chunky-btn cursor-pointer bg-surface focus-within:outline-2 focus-within:outline-line">
           Choose JSON file
           <input
             type="file"
@@ -498,12 +526,12 @@ function DataSection() {
           />
         </label>
         {importError ? (
-          <p className="rounded-lg bg-danger-surface px-3 py-2 text-sm text-danger" role="alert">
+          <p className="rounded-[var(--radius-sm)] bg-danger-surface px-3 py-2 text-sm text-danger" role="alert">
             {importError}
           </p>
         ) : null}
         {preview && counts ? (
-          <div className="rounded-xl border border-border bg-background px-3 py-3 text-sm">
+          <div className="chunky-soft px-4 py-3 text-sm">
             <p className="font-medium">Preview</p>
             <p className="mt-1 text-muted">
               {counts.goals} goals · {counts.tasks} tasks · {counts.sessions} sessions · {counts.blocklists}{' '}
@@ -514,18 +542,14 @@ function DataSection() {
         ) : null}
       </div>
       {notice ? <p className="text-sm text-muted">{notice}</p> : null}
-      <div className="space-y-3 border-t border-border pt-6">
-        <p className="text-sm font-medium text-danger">Delete account data</p>
+      <div className="space-y-3 rounded-[var(--radius-lg)] border-2 border-dashed border-danger/40 p-4">
+        <p className="text-sm font-semibold text-danger">Delete account data</p>
         <p className="text-sm text-muted">
           Removes your Cadence goals, tasks, sessions, blocklists, and settings, then signs you out.
         </p>
-        <button
-          type="button"
-          onClick={() => setDeleteOpen(true)}
-          className="min-h-11 rounded-lg border border-danger/40 bg-danger-surface px-4 text-sm font-medium text-danger"
-        >
+        <ChunkyButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>
           Delete my data
-        </button>
+        </ChunkyButton>
       </div>
       <ConfirmDialog
         open={preview !== null}
@@ -590,7 +614,7 @@ function NumberField({ name, label, defaultValue }: { name: string; label: strin
         min={1}
         required
         defaultValue={defaultValue}
-        className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 tabular-nums"
+        className="chunky-input mt-1.5 font-normal tabular-nums"
       />
     </label>
   )
@@ -599,14 +623,21 @@ function NumberField({ name, label, defaultValue }: { name: string; label: strin
 function SaveButton({ pending, notice }: { pending: boolean; notice: string | null }) {
   return (
     <>
-      <button
-        type="submit"
-        disabled={pending}
-        className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground disabled:opacity-60"
-      >
+      <ChunkyButton type="submit" variant="primary" icon="check" loading={pending}>
         {pending ? 'Saving…' : 'Save'}
-      </button>
-      {notice ? <p className="text-sm text-muted">{notice}</p> : null}
+      </ChunkyButton>
+      <AnimatePresence>
+        {notice ? (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-sm font-medium text-done"
+            role="status"
+          >
+            ✓ {notice}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { Icon } from './ui/Icon'
 
 export function AccountMenu({
   email,
@@ -38,7 +39,7 @@ export function AccountMenu({
         <div
           id={menuId}
           role="menu"
-          className="cadence-enter absolute inset-x-0 bottom-full mb-2 overflow-hidden rounded-xl border border-border bg-surface p-2 shadow-sm"
+          className="cadence-enter chunky absolute right-0 top-full z-50 mt-3 w-64 overflow-hidden !rounded-[var(--radius-md)] p-2"
         >
           <div className="px-2 py-2">
             <p className="truncate text-sm font-medium">{label}</p>
@@ -51,8 +52,9 @@ export function AccountMenu({
               setOpen(false)
               void navigate('/settings')
             }}
-            className="flex min-h-11 w-full items-center rounded-lg px-2 text-left text-sm font-medium hover:bg-background"
+            className="flex min-h-11 w-full items-center gap-2 rounded-[10px] px-2.5 text-left text-sm font-medium hover:bg-foreground/5"
           >
+            <Icon name="settings" size={17} />
             Settings
           </button>
           <button
@@ -62,8 +64,9 @@ export function AccountMenu({
               setOpen(false)
               onSignOut()
             }}
-            className="flex min-h-11 w-full items-center rounded-lg px-2 text-left text-sm font-medium text-danger hover:bg-danger-surface"
+            className="flex min-h-11 w-full items-center gap-2 rounded-[10px] px-2.5 text-left text-sm font-medium text-danger hover:bg-danger-surface"
           >
+            <Icon name="logout" size={17} />
             Log out
           </button>
         </div>
@@ -74,19 +77,14 @@ export function AccountMenu({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((current) => !current)}
-        className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left hover:bg-background"
+        aria-label={`Account: ${label}`}
+        className="chunky-btn tone-peach !size-11 !p-0 bg-tone"
       >
         <span
           aria-hidden
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-muted text-sm font-semibold text-accent"
+          className="font-display text-base font-bold"
         >
           {label.slice(0, 1).toUpperCase()}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{label}</span>
-        </span>
-        <span className="shrink-0 text-muted" aria-hidden>
-          {open ? '▴' : '▾'}
         </span>
       </button>
     </div>

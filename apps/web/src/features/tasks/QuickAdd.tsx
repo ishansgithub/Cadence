@@ -1,6 +1,9 @@
 import { matchGoal, parseQuickAdd, type Goal } from '@cadence/core'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { GoalChip } from '../../components/GoalChip'
+import { Icon } from '../../components/ui/Icon'
 import { useToast } from '../../components/useToast'
+import { emojiFor } from '../../lib/palette'
 import { useCreateTask } from '../../data/use-tasks'
 
 export function QuickAdd({
@@ -89,27 +92,50 @@ export function QuickAdd({
 
   return (
     <form onSubmit={submit} className="relative">
-      <label className="block text-sm font-medium" htmlFor="quick-add">
+      <label className="sr-only" htmlFor="quick-add">
         Quick add
+      </label>
+      <div className="tone-peach group relative">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-2 grid size-9 -translate-y-1/2 place-items-center rounded-full border-2 border-line bg-tone transition-transform duration-300 ease-[var(--ease-spring)] group-focus-within:rotate-90"
+        >
+          <Icon name="plus" size={18} strokeWidth={2.6} />
+        </span>
         <input
           ref={inputRef}
           id="quick-add"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="Title  #goal  ~30m  !tomorrow"
-          className="mt-1 min-h-11 w-full rounded-lg border border-border bg-surface px-3 py-2"
+          autoComplete="off"
+          className="chunky-input !min-h-13 !rounded-full !border-line !pr-24 !pl-14 text-base shadow-[3px_5px_0_0_var(--tone-slab)] focus:!shadow-[4px_7px_0_0_var(--tone-slab)]"
         />
-      </label>
-      {picked ? <p className="mt-1 text-xs text-muted">Linked to {picked.title}</p> : null}
+        <kbd className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 rounded-md border-[1.5px] border-border px-1.5 text-xs text-muted sm:block">
+          Enter ↵
+        </kbd>
+      </div>
+      {picked ? (
+        <p className="cadence-enter mt-2 ml-4 text-xs text-muted">
+          Linked to <GoalChip title={picked.title} id={picked.id} />
+        </p>
+      ) : (
+        <p className="mt-2 ml-4 hidden text-xs text-muted sm:block">
+          Try <code className="font-semibold text-foreground">#goal</code> to link,{' '}
+          <code className="font-semibold text-foreground">~30m</code> to estimate,{' '}
+          <code className="font-semibold text-foreground">!tomorrow</code> to set a due date.
+        </p>
+      )}
       {suggestions.length > 0 ? (
-        <ul className="cadence-enter absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-border bg-surface">
+        <ul className="cadence-enter chunky absolute z-30 mt-2 w-full overflow-hidden !rounded-[var(--radius-md)] p-1.5">
           {suggestions.map((goal) => (
             <li key={goal.id}>
               <button
                 type="button"
                 onClick={() => chooseGoal(goal)}
-                className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-background"
+                className="flex min-h-11 w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-sm hover:bg-foreground/5"
               >
+                <span aria-hidden>{emojiFor(goal.id)}</span>
                 {goal.title}
               </button>
             </li>

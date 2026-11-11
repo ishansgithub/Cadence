@@ -1,7 +1,36 @@
 import { isOverdue, type Goal, type Task } from '@cadence/core'
+import { motion } from 'motion/react'
 import { GoalChip } from '../../components/GoalChip'
+import { Icon } from '../../components/ui/Icon'
+import { staggerChild } from '../../components/ui/variants'
 import { useSetTaskStatus } from '../../data/use-tasks'
+import { toneFor } from '../../lib/palette'
 import { useTimer } from '../timer/useTimer'
+
+export function PlayButton({
+  title,
+  disabled,
+  onClick,
+  className = '',
+}: {
+  title: string
+  disabled: boolean
+  onClick: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Start focus on ${title}`}
+      title="Start focus"
+      disabled={disabled}
+      onClick={onClick}
+      className={`chunky-btn bg-tone !size-11 !min-h-11 shrink-0 !p-0 text-foreground ${className}`}
+    >
+      <Icon name="play" size={17} strokeWidth={2.4} />
+    </button>
+  )
+}
 
 export function TaskRow({
   task,
@@ -22,41 +51,52 @@ export function TaskRow({
   const overdue = isOverdue(task, today)
   const done = task.status === 'done'
   const running = timer.active?.type === 'focus' && timer.active.task_id === task.id
+  const tone = goal ? toneFor(goal.id) : overdue ? 'rose' : 'peach'
 
   return (
-    <li
-      className={`flex items-center gap-3 border-b border-border py-3 ${running ? 'bg-accent-muted/40' : ''}`}
+    <motion.li
+      layout
+      variants={staggerChild}
+      exit="exit"
+      className={`tone-${tone} chunky-soft chunky-hover group flex items-center gap-3 px-3 py-1.5 ${
+        running ? 'chunky-tone !border-line' : ''
+      } ${done ? 'opacity-70' : ''}`}
     >
       <input
         type="checkbox"
-        className="size-5 shrink-0 accent-[var(--accent)]"
         checked={done}
         aria-label={done ? `Mark ${task.title} not done` : `Mark ${task.title} done`}
         onChange={() => setStatus.mutate({ id: task.id, status: done ? 'todo' : 'done' })}
       />
-      <button type="button" onClick={onOpen} className="min-h-11 min-w-0 flex-1 text-left">
-        <span className={done ? 'text-muted line-through' : ''}>{task.title}</span>
-        {overdue && task.due_date ? (
-          <span className="mt-0.5 block text-xs text-overdue">
+      <button type="button" onClick={onOpen} className="min-h-11 min-w-0 flex-1 py-1.5 text-left active:!scale-100">
+        <span className={`font-medium ${done ? 'text-muted line-through decoration-2' : ''}`}>{task.title}</span>
+        {running ? (
+          <span className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-tone-strong">
+            <span className="size-1.5 animate-pulse rounded-full bg-tone-strong" /> Focusing now
+          </span>
+        ) : overdue && task.due_date ? (
+          <span className="mt-0.5 block text-xs font-medium text-overdue">
             Overdue · <span className="tabular-nums">{task.due_date}</span>
           </span>
         ) : null}
       </button>
-      {goal ? <GoalChip title={goal.title} /> : null}
+      {goal ? (
+        <span className="hidden sm:inline-flex">
+          <GoalChip title={goal.title} id={goal.id} />
+        </span>
+      ) : null}
       {task.estimate_min ? (
-        <span className="shrink-0 text-sm tabular-nums text-muted">{task.estimate_min}m</span>
+        <span className="shrink-0 rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted">
+          {task.estimate_min}m
+        </span>
       ) : null}
       {showPlay && !done ? (
-        <button
-          type="button"
-          aria-label={`Start focus on ${task.title}`}
+        <PlayButton
+          title={task.title}
           disabled={timer.loading || Boolean(timer.active)}
           onClick={() => void timer.startFocus(task.id)}
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-sm font-medium text-accent disabled:opacity-50"
-        >
-          Play
-        </button>
+        />
       ) : null}
-    </li>
+    </motion.li>
   )
 }

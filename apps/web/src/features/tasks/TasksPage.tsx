@@ -6,10 +6,13 @@ import {
   type TaskDueFilter,
   type TaskStatus,
 } from '@cadence/core'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { EmptyState } from '../../components/EmptyState'
 import { QueryState } from '../../components/QueryState'
 import { SelectMenu } from '../../components/SelectMenu'
+import { Icon } from '../../components/ui/Icon'
+import { staggerParent } from '../../components/ui/variants'
 import { useGoals } from '../../data/use-goals'
 import { useTasks } from '../../data/use-tasks'
 import { useSettings } from '../settings/useSettings'
@@ -19,10 +22,10 @@ import { TasksListRow } from './TasksListRow'
 
 const statusOptions: Array<{ value: TaskStatus | 'all'; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'todo', label: 'todo' },
-  { value: 'in_progress', label: 'in progress' },
-  { value: 'done', label: 'done' },
-  { value: 'archived', label: 'archived' },
+  { value: 'todo', label: 'To do' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'done', label: 'Done' },
+  { value: 'archived', label: 'Archived' },
 ]
 const dueOptions: Array<{ value: TaskDueFilter; label: string }> = [
   { value: 'all', label: 'All dates' },
@@ -32,7 +35,13 @@ const dueOptions: Array<{ value: TaskDueFilter; label: string }> = [
   { value: 'none', label: 'No date' },
 ]
 
-const fieldClass = 'mt-1 min-h-11 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm'
+const groupTone: Record<string, string> = {
+  overdue: 'tone-rose',
+  today: 'tone-peach',
+  upcoming: 'tone-sky',
+  none: 'tone-lilac',
+  done: 'tone-sage',
+}
 
 export function TasksPage() {
   const tasks = useTasks()
@@ -60,24 +69,50 @@ export function TasksPage() {
   const hasAnyTasks = (tasks.data ?? []).length > 0
 
   return (
-    <section className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
-      <div className="sticky top-0 z-20 -mx-4 mt-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
+    <section className="mx-auto max-w-4xl">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-4xl md:text-5xl">Tasks</h1>
+          <p className="mt-1 text-muted">Everything on your plate, grouped by when it&rsquo;s due.</p>
+        </div>
+        <p className="font-display text-lg font-bold tabular-nums text-muted">
+          {visible.length} <span className="text-sm font-medium">shown</span>
+        </p>
+      </div>
+
+      <div className="mt-6">
         {today ? (
           <QuickAdd goals={goals.data ?? []} today={today} plannedFor={null} />
         ) : (
-          <p className="text-sm text-muted">Loading your time zone…</p>
+          <div className="skeleton h-13 !rounded-full" />
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SelectMenu
-          id="task-status-filter"
-          label="Status"
-          value={status}
-          options={statusOptions}
-          onChange={(next) => setStatus(next as TaskStatus | 'all')}
-        />
+      <LayoutGroup id="task-status">
+        <div role="tablist" aria-label="Status" className="mt-6 flex flex-wrap gap-2">
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={status === option.value}
+              onClick={() => setStatus(option.value)}
+              className="pill-toggle relative !bg-transparent aria-selected:!text-ink-foreground"
+            >
+              {status === option.value ? (
+                <motion.span
+                  layoutId="task-status-pill"
+                  className="absolute inset-0 rounded-full bg-ink"
+                  transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </LayoutGroup>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <SelectMenu
           id="task-goal-filter"
           label="Goal"
@@ -98,17 +133,29 @@ export function TasksPage() {
         />
         <label className="text-sm font-medium" htmlFor="task-search">
           Search
-          <input
-            id="task-search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className={fieldClass}
-            placeholder="Title or notes"
-          />
+          <span className="relative mt-1 block">
+            <input
+              id="task-search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="chunky-input !pr-9 text-sm font-normal"
+              placeholder="Title or notes"
+            />
+            {search ? (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setSearch('')}
+                className="absolute top-1/2 right-2 grid size-7 !min-h-7 -translate-y-1/2 place-items-center rounded-full text-muted hover:bg-foreground/5 hover:text-foreground"
+              >
+                <Icon name="close" size={14} strokeWidth={2.6} />
+              </button>
+            ) : null}
+          </span>
         </label>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-8">
         <QueryState
           isPending={tasks.isPending || goals.isPending || settings.loading}
           isError={tasks.isError || goals.isError || settings.error !== null || !settings.settings}
@@ -121,6 +168,7 @@ export function TasksPage() {
         >
           {visible.length === 0 ? (
             <EmptyState
+              mascot={hasAnyTasks ? 'owl' : 'cat'}
               title={hasAnyTasks ? 'No tasks match' : 'No tasks yet'}
               body={
                 hasAnyTasks
@@ -129,28 +177,29 @@ export function TasksPage() {
               }
             />
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-10">
               {groups.map((group) => (
-                <section key={group.id}>
-                  <h2
-                    className={`text-sm font-semibold tracking-wide ${
-                      group.id === 'overdue' ? 'text-overdue' : 'text-foreground'
-                    }`}
-                  >
-                    {group.label}
-                    <span className="ml-2 tabular-nums text-muted">({group.tasks.length})</span>
+                <section key={group.id} className={groupTone[group.id] ?? 'tone-peach'}>
+                  <h2 className="flex items-center gap-2.5 text-xl font-bold">
+                    <span aria-hidden className="size-3 rounded-full border-2 border-line bg-tone-slab" />
+                    <span className={group.id === 'overdue' ? 'text-overdue' : ''}>{group.label}</span>
+                    <span className="rounded-full bg-tone px-2 py-0.5 font-sans text-xs font-semibold tabular-nums text-muted">
+                      {group.tasks.length}
+                    </span>
                   </h2>
-                  <ul className="mt-2">
-                    {group.tasks.map((task) => (
-                      <TasksListRow
-                        key={task.id}
-                        task={task}
-                        goals={goals.data ?? []}
-                        today={today ?? ''}
-                        onOpen={() => setOpenTask(task)}
-                      />
-                    ))}
-                  </ul>
+                  <motion.ul variants={staggerParent} initial="hidden" animate="show" className="mt-3 space-y-2">
+                    <AnimatePresence initial={false}>
+                      {group.tasks.map((task) => (
+                        <TasksListRow
+                          key={task.id}
+                          task={task}
+                          goals={goals.data ?? []}
+                          today={today ?? ''}
+                          onOpen={() => setOpenTask(task)}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </motion.ul>
                 </section>
               ))}
             </div>

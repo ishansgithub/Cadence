@@ -9,6 +9,10 @@ const appDir = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   envDir: path.resolve(appDir, '../..'),
+  server: {
+    // Cloudflare Quick Tunnel hostnames change each run
+    allowedHosts: ['.trycloudflare.com'],
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -21,9 +25,9 @@ export default defineConfig({
         short_name: 'Cadence',
         description: 'Focus, tasks, goals, and time tracking',
         display: 'standalone',
-        start_url: '/',
-        background_color: '#f4f1ea',
-        theme_color: '#f4f1ea',
+        start_url: '/today',
+        background_color: '#fbf8f1',
+        theme_color: '#fbf8f1',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

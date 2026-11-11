@@ -27,12 +27,28 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { motion } from 'motion/react'
+import { StatBadge } from '../../components/ui/ChunkyCard'
+import { ChunkyButton } from '../../components/ui/ChunkyButton'
 import { useGoals } from '../../data/use-goals'
 import { useReports } from '../../data/use-reports'
 import { useSettings } from '../settings/useSettings'
 import { ChartCard, DataTable } from './ChartCard'
 
 const chartColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
+
+const tooltipProps = {
+  cursor: { fill: 'var(--chart-grid)', opacity: 0.6, radius: 8 },
+  contentStyle: {
+    background: 'var(--surface)',
+    border: '2px solid var(--line)',
+    borderRadius: 14,
+    boxShadow: '3px 5px 0 0 var(--sand-slab)',
+    color: 'var(--foreground)',
+    fontSize: 13,
+  },
+  labelStyle: { fontWeight: 700 },
+} as const
 
 function shortDay(day: string): string {
   return day.slice(5)
@@ -84,11 +100,11 @@ export function ReportsPage() {
   ])
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-4xl md:text-5xl">Reports</h1>
+          <p className="mt-2 text-sm text-muted">
             <span className="tabular-nums">
               {range.from} → {range.to}
             </span>
@@ -97,13 +113,9 @@ export function ReportsPage() {
           </p>
         </div>
         {selectedName ? (
-          <button
-            type="button"
-            onClick={() => setGoalId(null)}
-            className="min-h-11 rounded-lg border border-border px-3 text-sm"
-          >
+          <ChunkyButton icon="close" onClick={() => setGoalId(null)}>
             Clear {selectedName}
-          </button>
+          </ChunkyButton>
         ) : null}
       </div>
 
@@ -111,7 +123,7 @@ export function ReportsPage() {
         <div
           role="group"
           aria-label="Range span"
-          className="flex rounded-xl border border-border bg-surface p-1"
+          className="chunky flex gap-1 !rounded-full p-1.5"
         >
           {(['week', 'month'] as const).map((option) => (
             <button
@@ -123,13 +135,18 @@ export function ReportsPage() {
                 setCustomFrom('')
                 setCustomTo('')
               }}
-              className={`min-h-11 rounded-lg px-4 text-sm font-medium capitalize ${
-                span === option && !usingCustom
-                  ? 'bg-accent-muted text-accent'
-                  : 'text-muted hover:text-foreground'
+              className={`relative min-h-10 rounded-full px-5 text-sm font-semibold capitalize ${
+                span === option && !usingCustom ? 'text-ink-foreground' : 'text-muted hover:text-foreground'
               }`}
             >
-              {option}
+              {span === option && !usingCustom ? (
+                <motion.span
+                  layoutId="report-span-pill"
+                  className="absolute inset-0 rounded-full bg-ink"
+                  transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative">{option}</span>
             </button>
           ))}
         </div>
@@ -139,7 +156,7 @@ export function ReportsPage() {
             type="date"
             value={customFrom || range.from}
             onChange={(event) => setCustomFrom(event.target.value)}
-            className="mt-1 block min-h-11 rounded-lg border border-border bg-surface px-3 tabular-nums"
+            className="chunky-input mt-1 block !w-auto font-normal tabular-nums"
           />
         </label>
         <label className="text-sm font-medium">
@@ -148,22 +165,27 @@ export function ReportsPage() {
             type="date"
             value={customTo || range.to}
             onChange={(event) => setCustomTo(event.target.value)}
-            className="mt-1 block min-h-11 rounded-lg border border-border bg-surface px-3 tabular-nums"
+            className="chunky-input mt-1 block !w-auto font-normal tabular-nums"
           />
         </label>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Summary label="Focus minutes" value={String(focusMin)} />
-        <Summary label="Focus sessions" value={String(sessions)} testId="focus-sessions" />
-        <Summary label="Current streak" value={streak === 1 ? '1 day' : `${streak} days`} />
-        <Summary
+        <StatBadge tone="peach" label="Focus minutes" value={String(focusMin)} />
+        <StatBadge tone="sage" label="Focus sessions" value={String(sessions)} testId="focus-sessions" />
+        <StatBadge tone="sky" label="Current streak" value={streak === 1 ? '1 day' : `${streak} days`} />
+        <StatBadge
+          tone="lilac"
           label="Best day"
-          value={best ? `${shortDay(best.day)} · ${Math.round(best.focusMin)} min` : '—'}
+          value={best ? `${shortDay(best.day)} · ${Math.round(best.focusMin)}m` : '—'}
         />
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-2">
+
       <ChartCard
+        className="lg:col-span-2"
+        tone="peach"
         title="Focus time per day"
         insight={dailyInsight(daily)}
         pending={reports.isPending}
@@ -184,14 +206,16 @@ export function ReportsPage() {
               <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
               <YAxis stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
-              <Tooltip />
-              <Bar dataKey="focusMin" name="Minutes" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+              <Tooltip {...tooltipProps} />
+              <Bar dataKey="focusMin" name="Minutes" fill="var(--chart-1)" stroke="var(--line)" strokeWidth={2} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartCard>
 
       <ChartCard
+        className="lg:col-span-2"
+        tone="sage"
         title="Time by goal"
         insight={goalTimeInsight(weekly.points, weekly.goalIds, goalName)}
         pending={reports.isPending}
@@ -222,7 +246,7 @@ export function ReportsPage() {
                 tick={{ fill: 'var(--chart-axis)' }}
               />
               <YAxis stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
-              <Tooltip />
+              <Tooltip {...tooltipProps} />
               <Legend
                 onClick={(item) => {
                   if (typeof item.dataKey === 'string' && item.dataKey !== 'none') setGoalId(item.dataKey)
@@ -235,6 +259,8 @@ export function ReportsPage() {
                   name={goalName.get(id) ?? 'Goal'}
                   stackId="focus"
                   fill={chartColors[index % chartColors.length]}
+                  stroke="var(--line)"
+                  strokeWidth={1.5}
                   className="cursor-pointer"
                   onClick={() => {
                     if (id !== 'none') setGoalId(id)
@@ -247,6 +273,7 @@ export function ReportsPage() {
       </ChartCard>
 
       <ChartCard
+        tone="sky"
         title="Estimate vs actual"
         insight={estimateInsight(estimates)}
         pending={reports.isPending}
@@ -271,16 +298,17 @@ export function ReportsPage() {
               <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="title" stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
               <YAxis stroke="var(--chart-axis)" tick={{ fill: 'var(--chart-axis)' }} />
-              <Tooltip />
+              <Tooltip {...tooltipProps} />
               <Legend />
-              <Bar dataKey="estimateMin" name="Estimate" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="actualMin" name="Actual" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="estimateMin" name="Estimate" fill="var(--chart-3)" stroke="var(--line)" strokeWidth={2} radius={[8, 8, 0, 0]} />
+              <Bar dataKey="actualMin" name="Actual" fill="var(--chart-1)" stroke="var(--line)" strokeWidth={2} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartCard>
 
       <ChartCard
+        tone="rose"
         title="Interruptions by reason"
         insight={reasonInsight(reasons)}
         pending={reports.isPending}
@@ -307,14 +335,16 @@ export function ReportsPage() {
                 stroke="var(--chart-axis)"
                 tick={{ fill: 'var(--chart-axis)' }}
               />
-              <Tooltip />
-              <Bar dataKey="interruptions" name="Interruptions" fill="var(--chart-4)" radius={[0, 6, 6, 0]} />
+              <Tooltip {...tooltipProps} />
+              <Bar dataKey="interruptions" name="Interruptions" fill="var(--chart-4)" stroke="var(--line)" strokeWidth={2} radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartCard>
 
       <ChartCard
+        className="lg:col-span-2"
+        tone="peach"
         title="Hour of day"
         insight={hourInsight(hours)}
         pending={reports.isPending}
@@ -325,18 +355,8 @@ export function ReportsPage() {
       >
         <Heatmap hours={hours} />
       </ChartCard>
+      </div>
     </div>
-  )
-}
-
-function Summary({ label, value, testId }: { label: string; value: string; testId?: string }) {
-  return (
-    <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="text-xs font-medium tracking-wide text-muted uppercase">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums" data-testid={testId}>
-        {value}
-      </p>
-    </section>
   )
 }
 
@@ -348,11 +368,19 @@ function Heatmap({ hours }: { hours: number[] }) {
         const strength = max > 0 ? minutes / max : 0
         return (
           <div key={hour} className="min-w-0 text-center">
-            <div
+            <motion.div
               title={`${String(hour).padStart(2, '0')}:00 · ${Math.round(minutes)} min`}
-              className="h-10 rounded-md border border-border"
+              initial={{ opacity: 0, scale: 0.4 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.12, y: -3 }}
+              viewport={{ once: true }}
+              transition={{ type: 'spring', stiffness: 420, damping: 22, delay: hour * 0.015 }}
+              className={`h-11 rounded-[8px] border-2 ${strength > 0 ? 'border-line' : 'border-border'}`}
               style={{
-                backgroundColor: `color-mix(in srgb, var(--chart-1) ${Math.round(12 + strength * 88)}%, transparent)`,
+                backgroundColor:
+                  strength > 0
+                    ? `color-mix(in srgb, var(--tone-strong) ${Math.round(15 + strength * 85)}%, var(--tone-bg))`
+                    : 'var(--surface)',
               }}
             />
             <p className="mt-1 text-[10px] tabular-nums text-muted">{hour}</p>

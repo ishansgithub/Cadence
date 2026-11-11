@@ -1,44 +1,52 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
+import { IconButton } from './ui/ChunkyButton'
 import { useDialogBehavior } from './useDialogBehavior'
 
-export function Modal({
-  open,
-  title,
-  onClose,
-  children,
-}: {
+type Props = {
   open: boolean
   title: string
   onClose: () => void
   children: ReactNode
-}) {
+}
+
+export function Modal(props: Props) {
+  return <AnimatePresence>{props.open ? <ModalPanel {...props} /> : null}</AnimatePresence>
+}
+
+function ModalPanel({ title, onClose, children }: Props) {
   const panelRef = useRef<HTMLElement>(null)
-  useDialogBehavior(open, onClose, panelRef)
-  if (!open) return null
+  useDialogBehavior(true, onClose, panelRef)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <button
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+      <motion.button
         type="button"
-        className="cadence-scrim absolute inset-0 bg-foreground/30 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-foreground/25 backdrop-blur-[3px]"
         aria-label="Close"
         onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
       />
-      <section
+      <motion.section
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="cadence-dialog relative w-full max-w-lg rounded-2xl border border-border bg-surface p-4"
+        className="chunky relative max-h-[90svh] w-full max-w-lg overflow-y-auto !rounded-[var(--radius-xl)] p-5"
+        initial={{ opacity: 0, y: 40, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          <button type="button" onClick={onClose} className="min-h-11 rounded-lg border border-border px-3 text-sm">
-            Close
-          </button>
+          <h2 className="text-xl font-bold">{title}</h2>
+          <IconButton icon="close" label="Close" onClick={onClose} size={40} />
         </div>
         <div className="mt-4">{children}</div>
-      </section>
+      </motion.section>
     </div>
   )
 }

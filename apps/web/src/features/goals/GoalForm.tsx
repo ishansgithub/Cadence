@@ -1,7 +1,8 @@
 import type { Goal, GoalCreate, GoalStatus, GoalTargetType } from '@cadence/core'
 import { useState, type FormEvent } from 'react'
+import { ChunkyButton } from '../../components/ui/ChunkyButton'
 
-const fieldClass = 'mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2'
+const fieldClass = 'chunky-input mt-1.5 font-normal'
 
 const statuses: GoalStatus[] = ['active', 'paused', 'done', 'archived']
 const targetTypes: { value: GoalTargetType; label: string }[] = [
@@ -129,17 +130,13 @@ export function GoalForm({
         </select>
       </label>
       {error ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="rounded-[var(--radius-sm)] bg-danger-surface px-3 py-2 text-sm text-danger">
           {error}
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-60"
-      >
+      <ChunkyButton type="submit" variant="primary" loading={pending} className="w-full sm:w-auto">
         {pending ? 'Saving…' : 'Save goal'}
-      </button>
+      </ChunkyButton>
     </form>
   )
 }

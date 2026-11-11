@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { Icon } from './ui/Icon'
 
 export type SelectOption = {
   value: string
@@ -53,11 +54,11 @@ export function SelectMenu({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen((current) => !current)}
-        className="mt-1 flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 text-left text-sm hover:border-accent/45"
+        className="mt-1 flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] border-2 border-border bg-surface px-3.5 text-left text-sm hover:border-line aria-expanded:border-line aria-expanded:shadow-[2px_4px_0_0_var(--sand-slab)]"
       >
         <span className="min-w-0 truncate">{selected?.label ?? 'Select'}</span>
         <span className="shrink-0 text-muted" aria-hidden>
-          {open ? '▴' : '▾'}
+          <Icon name={open ? 'chevron-up' : 'chevron-down'} size={16} strokeWidth={2.4} />
         </span>
       </button>
       {open ? (
@@ -65,7 +66,7 @@ export function SelectMenu({
           id={listId}
           role="listbox"
           aria-label={label}
-          className="cadence-enter absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-surface p-1"
+          className="cadence-enter chunky absolute z-30 mt-2 max-h-64 w-full overflow-y-auto !rounded-[var(--radius-md)] p-1.5"
         >
           {options.map((option) => {
             const active = option.value === value
@@ -77,8 +78,8 @@ export function SelectMenu({
                     onChange(option.value)
                     setOpen(false)
                   }}
-                  className={`flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm ${
-                    active ? 'bg-accent-muted font-medium text-accent' : 'hover:bg-background'
+                  className={`flex min-h-11 w-full items-center rounded-[10px] px-3 text-left text-sm ${
+                    active ? 'bg-ink font-semibold text-ink-foreground' : 'hover:bg-foreground/5'
                   }`}
                 >
                   {option.label}

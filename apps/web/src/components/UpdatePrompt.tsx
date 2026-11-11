@@ -12,9 +12,9 @@ export function UpdatePrompt() {
   if (!update) return null
 
   return (
-    <div className="flex items-center justify-between gap-3 bg-accent px-4 py-2 text-sm text-accent-foreground">
+    <div className="cadence-enter chunky tone-butter chunky-tone mx-auto mt-3 flex w-[min(100%-2rem,28rem)] items-center justify-between gap-3 !rounded-full py-1.5 pr-1.5 pl-4 text-sm font-medium">
       <p>Update available</p>
-      <button type="button" onClick={() => void update()} className="min-h-11 rounded-lg bg-surface px-3 text-foreground">
+      <button type="button" onClick={() => void update()} className="chunky-btn !min-h-9 bg-ink text-ink-foreground">
         Reload
       </button>
     </div>
